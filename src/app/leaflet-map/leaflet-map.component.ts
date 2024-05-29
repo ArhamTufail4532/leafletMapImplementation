@@ -33880,13 +33880,6 @@ constructor() { }
 
   private initMap(): void {
 
-    var googleRoad = (L.gridLayer as any).googleMutant({
-        type: "roadmap", });
-    
-        var satMutant = (L.gridLayer as any).googleMutant({
-            type: "hybrid",
-        });
-
     this.map =new L.Map('leafletMap',{
         closePopupOnClick:false,
         scrollWheelZoom:'center',
@@ -33897,18 +33890,17 @@ constructor() { }
     }, 2000);
     
     //google map initilization
-    var googleRoad = (L.gridLayer as any).googleMutant({
-    type: "roadmap", });
+    var googlehybrid = (L.gridLayer as any).googleMutant({
+    type: "hybrid", });
 
     var satMutant = (L.gridLayer as any).googleMutant({
-        type: "hybrid",
+        type: "satellite",
     });
-    
 
     var terrainMutant = (L.gridLayer as any).googleMutant({
         type: "terrain",
     });
-    satMutant.addTo(this.map);
+    googlehybrid.addTo(this.map);
 
     // full screen view control implementation
     var fsControl = (L.control as any).fullscreen();
@@ -33933,7 +33925,8 @@ constructor() { }
     .openOn(this.map);
 
     var baseLayers = {
-        "satellite": satMutant,
+        "satellite":googlehybrid,
+        "hybrid": satMutant,
         "terrian": terrainMutant
     };
 
