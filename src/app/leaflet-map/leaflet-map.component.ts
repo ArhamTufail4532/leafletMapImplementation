@@ -1,7 +1,8 @@
 import { Component, OnInit, AfterViewInit } from '@angular/core';
 import * as L from 'leaflet';
 import { MapData } from '../interfaces/MapData';
-
+import "leaflet.gridlayer.googlemutant";
+import "leaflet.fullscreen";
 @Component({
   selector: 'app-leaflet-map',
   templateUrl: './leaflet-map.component.html',
@@ -33878,22 +33879,95 @@ constructor() { }
   }
 
   private initMap(): void {
-    this.map = L.map('leafletMap').setView([45.411593833, 38.9389845], 13);
-    this.map.zoomControl.setPosition('bottomright');
-    L.control.scale({
 
+    var googleRoad = (L.gridLayer as any).googleMutant({
+        type: "roadmap", });
+    
+        var satMutant = (L.gridLayer as any).googleMutant({
+            type: "hybrid",
+        });
+
+    this.map =new L.Map('leafletMap',{
+        closePopupOnClick:false,
+        scrollWheelZoom:'center',
+    }).setView([45.411593833, 38.9389845], 11);
+
+    setTimeout(() => {
+        this.map.flyTo([45.411593833, 38.9389845],18);
+    }, 2000);
+    
+    var titleUrl = "https://tile.openstreetmap.de/{z}/{x}/{y}.png";
+    var attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+    var openstreetmap = L.tileLayer(titleUrl,{
+        attribution
+    });
+    //google map initilization
+    var googleRoad = (L.gridLayer as any).googleMutant({
+    type: "roadmap", });
+
+    var satMutant = (L.gridLayer as any).googleMutant({
+        type: "hybrid",
+    });
+    
+
+    var terrainMutant = (L.gridLayer as any).googleMutant({
+        type: "terrain",
+    });
+
+    satMutant.addTo(this.map);
+
+    //this.map.zoomControl.setPosition('bottomright');
+
+    var fsControl = (L.control as any).fullscreen();
+    this.map.addControl(fsControl);
+
+    L.control.scale({
+        position : 'bottomright'
     }).addTo(this.map);
 
     var singleMarker = L.marker([45.411593833, 38.9389845]).addTo(this.map);
 
-    singleMarker.bindPopup("the coordinates is:"+singleMarker.getLatLng()).openPopup;
+    var popup = L.popup({
+        offset:[1,6],
+        keepInView:false,
+        autoClose:false
+    })
+    .setLatLng([45.411593833, 38.9389845])
+    .setContent(popupData())
+    .openOn(this.map);
 
-   var openstreetmap =L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
-	maxZoom: 18,
-	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    var circleOverlay = L.circle([50.5, 30.5], {radius: 200}).addTo(this.map);
+
+    var baseLayers = {
+        "satellite": satMutant,
+        "terrian": terrainMutant
+    };
+
+    var overlays = {
+        "circle" : circleOverlay
+    }
+
+    L.control.layers(baseLayers,overlays,{
+        collapsed:false
+    }).addTo(this.map);
+
+    this.map.on('enterFullscreen', function(){
+        if(window.console) window.console.log('enterFullscreen');
     });
-
-    openstreetmap.addTo(this.map);
+    this.map.on('exitFullscreen', function(){
+        if(window.console) window.console.log('exitFullscreen');
+    });
+    /* var baseLayers = {
+        "satellite": satMutant,
+        "terrian": terrainMutant
+    };
+    
+    var overlays = {
+        "Marker": singleMarker,
+    };
+    
+    L.control.layers(baseLayers, overlays).addTo(this.map); */
 
     this.mapData.harvestingLinePath.forEach(harvestingLinePath => {
        this.addPolyline(harvestingLinePath.coordinates, this.mapData.harvestingLinePathColor);
@@ -33921,4 +33995,8 @@ constructor() { }
       L.circleMarker([coord.lat, coord.lng], { color: color, radius: 4 }).addTo(this.map);
     });
   }
+}
+
+function popupData(): L.Content | ((source: L.Layer) => L.Content) {
+    return "<div style='text-align:center;' class='machine-status-holder'> <p style='margin-bottom:2px'>6F1444</p> <img src='./assets/TigerOff.png' alt='images mechine' width='70px'> <span class='status'> offline </span></div>";
 }

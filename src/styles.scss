@@ -1,1 +1,50 @@
 /* You can add global styles to this file, and also import other style files */
+.leaflet-popup-content {
+    margin: 5px 15px 6px 13px;
+    line-height: 1.3;
+    font-size: 13px;
+    font-size: 1.08333em;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    border: none;
+    text-align: center;
+    width: 19px;
+    height: 15px;
+    font: 11px / 16px Tahoma, Verdana, sans-serif;
+    color: #757575;
+    text-decoration: none;
+    background: transparent;
+}
+.leaflet-popup-tip {
+    width: 10px;
+    height: 13px;
+}
+
+style attribute {
+    text-align: center;
+    /* font-size: 1rem; */
+}
+
+.leaflet-popup-content p {
+    /* margin: 17px 0; */
+    /* margin: 1.3em 0;*/
+    margin: 0;
+}
+
+.leaflet-popup-content p {
+    /* margin: 17px 0; */
+    /* margin: 1.3em 0; */
+}
+
+.machine-status-holder span.status{
+    position: absolute;
+    left: 29%;
+    top: 51%;
+    font-size: 12px;
+    line-height: 15px;
+    color: #b93435;
+}
