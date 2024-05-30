@@ -4,6 +4,8 @@ import { MapData } from '../interfaces/MapData';
 import "leaflet.gridlayer.googlemutant";
 import "leaflet.fullscreen";
 import "src/assets/leaflet-control-boxzoom.js";
+import "src/assets/leaflet-control-showAll.js";
+import "src/assets/leaflet-control-miniMap.js";
 
 @Component({
   selector: 'app-leaflet-map',
@@ -33911,9 +33913,19 @@ constructor() { }
     var zoomBox = (L.Control as any).boxzoom({ position:'topleft' });
     zoomBox.addTo(this.map);
 
+    var showall = (L.control as any).showAll({
+        bounds: L.latLngBounds(L.latLng(44.411593833, 37.9389845), L.latLng(47.411593833, 40.9389845))
+    });
+
+    var miniMap = new (L.Control as any).MiniMap(satMutant, { toggleDisplay: true }).addTo(this.map);
+
+    showall.addTo(this.map);
+
     // scale on map implementation
     L.control.scale({
-        position : 'bottomright'
+        position : 'bottomleft',
+        metric:true,
+        updateWhenIdle:true
     }).addTo(this.map);
 
     //single Marker on map Implementaion
@@ -33944,6 +33956,17 @@ constructor() { }
         collapsed:false
     }).addTo(this.map);
 
+    this.map.on("click",(e)=>{
+        var latitude = e.latlng.lat;
+        var longitude = e.latlng.lng;
+        console.log("the latitude is :" + latitude + "the longitude" + longitude);
+    });
+
+    //double click to show location on Maximum Zoom Level
+    var stonehenge = L.latLng(45.411593833, 38.9389845);
+        singleMarker.on('dblclick', (e)=> {
+            this.map.setView(stonehenge, 16);
+        });
     
 
     this.map.on('enterFullscreen', function(){
