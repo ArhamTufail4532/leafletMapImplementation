@@ -3,6 +3,8 @@ import * as L from 'leaflet';
 import { MapData } from '../interfaces/MapData';
 import "leaflet.gridlayer.googlemutant";
 import "leaflet.fullscreen";
+import "src/assets/leaflet-control-boxzoom.js";
+
 @Component({
   selector: 'app-leaflet-map',
   templateUrl: './leaflet-map.component.html',
@@ -33906,6 +33908,9 @@ constructor() { }
     var fsControl = (L.control as any).fullscreen();
     this.map.addControl(fsControl);
 
+    var zoomBox = (L.Control as any).boxzoom({ position:'topleft' });
+    zoomBox.addTo(this.map);
+
     // scale on map implementation
     L.control.scale({
         position : 'bottomright'
@@ -33938,6 +33943,8 @@ constructor() { }
     L.control.layers(baseLayers,overlays,{
         collapsed:false
     }).addTo(this.map);
+
+    
 
     this.map.on('enterFullscreen', function(){
         if(window.console) window.console.log('enterFullscreen');
@@ -33985,9 +33992,12 @@ constructor() { }
       L.circleMarker([coord.lat, coord.lng], { color: color, radius: 4 }).addTo(this.map);
     });
   }
+
 }
 
 //machine data styling on map
 function popupData(): L.Content | ((source: L.Layer) => L.Content) {
     return "<div style='text-align:center;' class='machine-status-holder'> <p style='margin-bottom:2px'>6F1444</p> <img src='./assets/TigerOff.png' alt='images mechine' width='70px'> <span class='status'> offline </span></div>";
 }
+
+
