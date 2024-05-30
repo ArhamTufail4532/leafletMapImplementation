@@ -7,3 +7,8 @@
     line-height: 15px;
     color: #b93435;
 }
+
+#leafletMap{
+    height: calc(100vh - 40px);
+    width: 100%
+}
