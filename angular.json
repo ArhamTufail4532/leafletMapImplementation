@@ -98,7 +98,9 @@
             "scripts": [
               "src/assets/leaflet-control-boxzoom.js",
               "src/assets/leaflet-control-showAll.js",
-              "src/assets/leaflet-control-miniMap.js"
+              "src/assets/leaflet-control-miniMap.js",
+              "src/assets/leaflet-control-coordinated.js",
+              "src/assets/leaflet-gesture-handling.js"
             ]
           }
         }
