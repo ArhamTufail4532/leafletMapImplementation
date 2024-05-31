@@ -6,6 +6,8 @@ import "leaflet.fullscreen";
 import "src/assets/leaflet-control-boxzoom.js";
 import "src/assets/leaflet-control-showAll.js";
 import "src/assets/leaflet-control-miniMap.js";
+import "src/assets/leaflet-control-coordinated.js";
+import "src/assets/leaflet-gesture-handling.js";
 
 @Component({
   selector: 'app-leaflet-map',
@@ -33884,16 +33886,19 @@ constructor() { }
 
   private initMap(): void {
 
-    this.map =new L.Map('leafletMap',{
+    this.map =new (L.Map as any)('leafletMap',{
         closePopupOnClick:false,
         scrollWheelZoom:'center',
+        gestureHandling: true,
     }).setView([45.411593833, 38.9389845], 11);
 
     setTimeout(() => {
-        this.map.flyTo([45.411593833, 38.9389845],18);
-    }, 2000);
+        this.map.flyTo([45.411593833, 38.9389845],18,{
+            duration:3
+        });
+    }, 1000);
     
-    //google map initilization
+    //google map initilization througth the 
     var googlehybrid = (L.gridLayer as any).googleMutant({
     type: "hybrid", });
 
@@ -33910,16 +33915,43 @@ constructor() { }
     var fsControl = (L.control as any).fullscreen();
     this.map.addControl(fsControl);
 
+    //automatic zoombox view control implementation
     var zoomBox = (L.Control as any).boxzoom({ position:'topleft' });
     zoomBox.addTo(this.map);
 
+    //adding showall control 
     var showall = (L.control as any).showAll({
         bounds: L.latLngBounds(L.latLng(44.411593833, 37.9389845), L.latLng(47.411593833, 40.9389845))
     });
+    showall.addTo(this.map);
 
+    //adding coordinates control on map
+    (L.control as any).coordinates().addTo(this.map);
+		(L.control as any).coordinates({
+			position:"bottomleft",
+			decimals:2,
+			decimalSeperator:",",
+			labelTemplateLat:"Latitude: {y}",
+			labelTemplateLng:"Longitude: {x}"
+		}).addTo(this.map);
+		(L.control as any).coordinates({
+			position:"topright",
+			useDMS:true,
+			labelTemplateLat:"N {y}",
+			labelTemplateLng:"E {x}",
+			useLatLngOrder:true
+		}).addTo(this.map);
+
+        const baseLayers = {
+            "satellite":googlehybrid,
+            "hybrid": satMutant,
+            "terrian": terrainMutant,
+        };
+
+        //minimap on map
     var miniMap = new (L.Control as any).MiniMap(satMutant, { toggleDisplay: true }).addTo(this.map);
 
-    showall.addTo(this.map);
+   
 
     // scale on map implementation
     L.control.scale({
@@ -33941,20 +33973,17 @@ constructor() { }
     .setContent(popupData())
     .openOn(this.map);
 
-    var baseLayers = {
-        "satellite":googlehybrid,
-        "hybrid": satMutant,
-        "terrian": terrainMutant
-    };
+    
 
-    var overlays = {
+    /*var overlays = {
         "marker" : singleMarker
-    }
+    }*/
+   
 
     //adding layers controller on map 
-    L.control.layers(baseLayers,overlays,{
+    /*L.control.layers(baseLayers,overlays,{
         collapsed:false
-    }).addTo(this.map);
+    }).addTo(this.map);*/
 
     this.map.on("click",(e)=>{
         var latitude = e.latlng.lat;
@@ -33975,19 +34004,16 @@ constructor() { }
     this.map.on('exitFullscreen', function(){
         if(window.console) window.console.log('exitFullscreen');
     });
-
-
-    /* var baseLayers = {
-        "satellite": satMutant,
-        "terrian": terrainMutant
-    };
     
     var overlays = {
         "Marker": singleMarker,
     };
 
     // other leaflet map controller
-    L.control.layers(baseLayers, overlays).addTo(this.map); */
+    L.control.layers(baseLayers, overlays,{
+        collapsed : false,
+        autoZIndex: true
+    }).addTo(this.map); 
 
     this.mapData.harvestingLinePath.forEach(harvestingLinePath => {
        this.addPolyline(harvestingLinePath.coordinates, this.mapData.harvestingLinePathColor);
