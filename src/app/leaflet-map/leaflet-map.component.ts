@@ -3,12 +3,8 @@ import * as L from 'leaflet';
 import { MapData } from '../interfaces/MapData';
 import "leaflet.gridlayer.googlemutant";
 import "leaflet.fullscreen";
-import "src/assets/leaflet-control-boxzoom.js";
-import "src/assets/leaflet-control-showAll.js";
 import "src/assets/leaflet-gesture-handling.js";
-import "leaflet.locatecontrol";
 import "src/assets/leaflet-control-defaulthome.js";
-import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-leaflet-map',
@@ -33899,13 +33895,6 @@ constructor() { }
         position:"bottomright",
     }).addTo(this.map);
 
-
-    (L.control as any).locate({
-        follow:false,
-        setView:false,
-        flyTo:true,
-    }).addTo(this.map);
-
     //google map initilization througth the 
     var googlehybrid = (L.gridLayer as any).googleMutant({
     type: "hybrid", });
@@ -33929,19 +33918,8 @@ constructor() { }
     var homeControl = (L.control as any).defaultExtent({
         title:"automatic zoom",
         position:"topright"
-    }).setCenter([45.411593833, 38.9389845]).setZoom(13)
+    }).setCenter([45.411593833, 38.9389845]).setZoom(12)
   .addTo(this.map);
-
-    //automatic zoombox view control implementation
-    var zoomBox = (L.Control as any).boxzoom({ position:'topright' });
-    zoomBox.addTo(this.map);
-
-    //adding showall control 
-    var showall = (L.control as any).showAll({
-        bounds: L.latLngBounds(L.latLng(44.411593833, 37.9389845), L.latLng(47.411593833, 40.9389845)),
-        position:"topright"
-    });
-    showall.addTo(this.map);
 
         const baseLayers = {
             "satellite":googlehybrid,
