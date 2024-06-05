@@ -33888,7 +33888,6 @@ constructor() { }
   private initMap(): void {
 
     this.map =new (L.Map as any)('leafletMap',{
-        zoomSnap: 0.25,
         closePopupOnClick:false,
         scrollWheelZoom:'center',
         gestureHandling: true,
