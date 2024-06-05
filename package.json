@@ -22,6 +22,7 @@
     "leaflet-gesture-handling": "^1.2.2",
     "leaflet.fullscreen": "^3.0.2",
     "leaflet.gridlayer.googlemutant": "^0.14.1",
+    "leaflet.locatecontrol": "^0.81.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.13.0"

@@ -1,13 +1,14 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Attribute } from '@angular/core';
 import * as L from 'leaflet';
 import { MapData } from '../interfaces/MapData';
 import "leaflet.gridlayer.googlemutant";
 import "leaflet.fullscreen";
 import "src/assets/leaflet-control-boxzoom.js";
 import "src/assets/leaflet-control-showAll.js";
-import "src/assets/leaflet-control-miniMap.js";
-import "src/assets/leaflet-control-coordinated.js";
 import "src/assets/leaflet-gesture-handling.js";
+import "leaflet.locatecontrol";
+import "src/assets/leaflet-control-defaulthome.js";
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-leaflet-map',
@@ -33887,17 +33888,25 @@ constructor() { }
   private initMap(): void {
 
     this.map =new (L.Map as any)('leafletMap',{
+        zoomSnap: 0.25,
         closePopupOnClick:false,
         scrollWheelZoom:'center',
         gestureHandling: true,
+        zoomControl: false,
+        attributionControl:false
     }).setView([45.411593833, 38.9389845], 11);
+    var singleMarker = L.marker([45.411593833, 38.9389845]).addTo(this.map);
+    L.control.zoom({
+        position:"bottomright",
+    }).addTo(this.map);
 
-    setTimeout(() => {
-        this.map.flyTo([45.411593833, 38.9389845],18,{
-            duration:3
-        });
-    }, 1000);
-    
+
+    (L.control as any).locate({
+        follow:false,
+        setView:false,
+        flyTo:true,
+    }).addTo(this.map);
+
     //google map initilization througth the 
     var googlehybrid = (L.gridLayer as any).googleMutant({
     type: "hybrid", });
@@ -33912,46 +33921,33 @@ constructor() { }
     googlehybrid.addTo(this.map);
 
     // full screen view control implementation
-    var fsControl = (L.control as any).fullscreen();
+    var fsControl = (L.control as any).fullscreen({
+        position:'topright'
+    });
     this.map.addControl(fsControl);
 
+    //automatic zoom 
+    var homeControl = (L.control as any).defaultExtent({
+        title:"automatic zoom",
+        position:"topright"
+    }).setCenter([45.411593833, 38.9389845]).setZoom(13)
+  .addTo(this.map);
+
     //automatic zoombox view control implementation
-    var zoomBox = (L.Control as any).boxzoom({ position:'topleft' });
+    var zoomBox = (L.Control as any).boxzoom({ position:'topright' });
     zoomBox.addTo(this.map);
 
     //adding showall control 
     var showall = (L.control as any).showAll({
-        bounds: L.latLngBounds(L.latLng(44.411593833, 37.9389845), L.latLng(47.411593833, 40.9389845))
+        bounds: L.latLngBounds(L.latLng(44.411593833, 37.9389845), L.latLng(47.411593833, 40.9389845)),
+        position:"topright"
     });
     showall.addTo(this.map);
 
-    //adding coordinates control on map
-    (L.control as any).coordinates().addTo(this.map);
-		(L.control as any).coordinates({
-			position:"bottomleft",
-			decimals:2,
-			decimalSeperator:",",
-			labelTemplateLat:"Latitude: {y}",
-			labelTemplateLng:"Longitude: {x}"
-		}).addTo(this.map);
-		(L.control as any).coordinates({
-			position:"topright",
-			useDMS:true,
-			labelTemplateLat:"N {y}",
-			labelTemplateLng:"E {x}",
-			useLatLngOrder:true
-		}).addTo(this.map);
-
         const baseLayers = {
             "satellite":googlehybrid,
-            "hybrid": satMutant,
             "terrian": terrainMutant,
         };
-
-        //minimap on map
-    var miniMap = new (L.Control as any).MiniMap(satMutant, { toggleDisplay: true }).addTo(this.map);
-
-   
 
     // scale on map implementation
     L.control.scale({
@@ -33961,7 +33957,7 @@ constructor() { }
     }).addTo(this.map);
 
     //single Marker on map Implementaion
-    var singleMarker = L.marker([45.411593833, 38.9389845]).addTo(this.map);
+    
 
     //popup for mechine data 
     var popup = L.popup({
@@ -34006,14 +34002,129 @@ constructor() { }
     });
     
     var overlays = {
-        "Marker": singleMarker,
+        
     };
 
     // other leaflet map controller
-    L.control.layers(baseLayers, overlays,{
+    var layerControl = L.control.layers(baseLayers, overlays,{
         collapsed : false,
-        autoZIndex: true
+        autoZIndex: true,
+        position:'topleft'
     }).addTo(this.map); 
+
+    var parentElement = document.querySelector('.leaflet-control-layers-base') as HTMLElement;
+    var labels = parentElement.querySelectorAll('label');
+    labels.forEach(function(label) {
+    var button = document.createElement('button');
+    button.textContent = (label.textContent as any).trim();
+    parentElement.replaceChild(button, label);
+});
+
+var firstButton = parentElement.querySelector("button:first-child");
+var secondButton = parentElement.querySelector("button:last-child");
+firstButton?.setAttribute("id","mapButton");
+secondButton?.setAttribute("id","labaledButton");
+firstButton?.classList.add("dropdown");
+secondButton?.classList.add("dropdown");
+var parentContiner = document.createElement("div");
+parentContiner.classList.add("dropdown-content");
+var radiobutton = document.createElement("input");
+radiobutton.setAttribute("type","radio");
+radiobutton.setAttribute("name","leaflet-base-layers");
+radiobutton.setAttribute("checked","checked");
+radiobutton.classList.add("leaflet-control-layers-selector");
+var buttonspan = document.createElement("span");
+var text = document.createTextNode("tarrian");
+buttonspan.appendChild(text);
+parentContiner.append(radiobutton);
+parentContiner.appendChild(buttonspan);
+firstButton?.appendChild(parentContiner);
+
+var parentContiner = document.createElement("div");
+parentContiner.classList.add("dropdown-content");
+var radiobutton = document.createElement("input");
+radiobutton.setAttribute("type","radio");
+radiobutton.setAttribute("name","leaflet-base-layers");
+radiobutton.classList.add("leaflet-control-layers-selector");
+var buttonspan = document.createElement("span");
+var text = document.createTextNode("labled");
+buttonspan.appendChild(text);
+parentContiner.append(radiobutton);
+parentContiner.appendChild(buttonspan);
+secondButton?.appendChild(parentContiner);
+
+
+document.getElementById("mapButton")?.addEventListener("click",()=>{
+    this.map.removeLayer(googlehybrid);
+    this.map.addLayer(terrainMutant);
+});
+
+document.getElementById("labaledButton")?.addEventListener("click",()=>{
+    this.map.removeLayer(terrainMutant);
+    this.map.addLayer(googlehybrid);
+});
+   /*var firstButton = document.querySelector(".leaflet-control-layers-base label:first-child") as HTMLElement;
+    firstButton.innerText = "Map";
+
+    var lastButton = document.querySelector(".leaflet-control-layers-base label:last-child") as HTMLElement;
+    lastButton.innerText = "Satellite";
+
+    firstButton.classList.add("dropdown");
+    lastButton.classList.add("dropdown");
+
+    var divContainer = document.createElement("ul");
+    divContainer.style.float="left";
+    divContainer.style.listStyleType = "none";
+    divContainer.classList.add("dropdown-content");
+    var firstListItem = document.createElement("li");
+    var inputButton = document.createElement("input");
+    firstListItem.style.float='left';
+    firstListItem.style.marginRight= 4 +"px";
+    inputButton.setAttribute("type","checkbox");
+    inputButton.setAttribute("checked",'true');
+    firstListItem.appendChild(inputButton);
+    var secondListItem = document.createElement("li");
+    var content = document.createTextNode("terrian");
+    secondListItem.appendChild(content);
+    divContainer.appendChild(firstListItem);
+    divContainer.appendChild(secondListItem);
+    firstButton.appendChild(divContainer);
+
+    var divContainer2 = document.createElement("ul");
+    divContainer2.style.float="left";
+    divContainer2.style.listStyleType = "none";
+    divContainer2.classList.add("dropdown-content");
+    var firstListItem2 = document.createElement("li");
+    var inputButton2 = document.createElement("input");
+    firstListItem2.style.marginRight= 4 +"px";
+    inputButton2.setAttribute("type","checkbox");
+    firstListItem2.style.float='left';
+    firstListItem2.appendChild(inputButton2);
+    var secondListItem2 = document.createElement("li");
+    var content2 = document.createTextNode("labled");
+    secondListItem2.appendChild(content2);
+    divContainer2.appendChild(firstListItem2);
+    divContainer2.appendChild(secondListItem2);
+    lastButton.appendChild(divContainer2);
+
+    var target = document.querySelector(".leaflet-control-layers-base label.dropdown:first-child");
+
+    target?.addEventListener("click",(e)=>{
+        e.preventDefault();
+        this.map.removeLayer(googlehybrid);
+        var terrainMutant = (L.gridLayer as any).googleMutant({
+            type: "terrain",
+        }).addTo(this.map);
+    });
+
+    var target = document.querySelector(".leaflet-control-layers-base label.dropdown:last-child");
+
+    target?.addEventListener("click",()=>{
+        var googlehybrid = (L.gridLayer as any).googleMutant({
+            type: "hybrid", });
+        googlehybrid.addTo(this.map);
+    });*/
+
 
     this.mapData.harvestingLinePath.forEach(harvestingLinePath => {
        this.addPolyline(harvestingLinePath.coordinates, this.mapData.harvestingLinePathColor);

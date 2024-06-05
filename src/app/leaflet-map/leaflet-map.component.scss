@@ -62,3 +62,8 @@
   
   .leaflet-gesture-handling-scroll-warning:after {
     content: attr(data-gesture-handling-scroll-content); }
+
+//css default style change
+    .leaflet-control-layers-base{
+      display: flex;
+    }
