@@ -1,18 +1,32 @@
-import { Component, OnInit, AfterViewInit, Attribute } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Attribute, HostListener } from '@angular/core';
 import * as L from 'leaflet';
 import { MapData } from '../interfaces/MapData';
+import { MechineDataServiceService } from '../mechine-data-service.service';
 import "leaflet.gridlayer.googlemutant";
 import "leaflet.fullscreen";
 import "src/assets/leaflet-gesture-handling.js";
 import "src/assets/leaflet-control-defaulthome.js";
+import "src/assets/leaflet-control-dummy.js";
+import { __metadata } from 'tslib';
 
+interface Line {
+    coordinates: { lat: number; lng: number }[]; 
+    orderNumber: number;
+    identifier: number;
+    isIdentifierEnd: boolean;
+    machine: string;
+  }
 @Component({
   selector: 'app-leaflet-map',
   templateUrl: './leaflet-map.component.html',
-  styleUrls: ['./leaflet-map.component.scss']
+  styleUrls: ['./leaflet-map.component.scss'],
+  providers: [MechineDataServiceService]
 })
 
 export class LeafletMapComponent implements OnInit, AfterViewInit {
+    public _machineData : any;
+    _machineName : string = "";
+    _polyline : any;
   private map: L.Map = {} as L.Map; // Initialize as an empty object
   mapData : MapData = {
     "roadTripLinePath": [ 
@@ -33872,25 +33886,92 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     "dataType": 1
 };
 
-constructor() { }
+constructor(private _singleMechineData: MechineDataServiceService) { }
 
   ngOnInit(): void {
+    this.fetchData();
   }
+fetchData():void{
+    this._machineName = this._singleMechineData.getMechineData().machineCalculations.machine;
+    this._machineData = this._singleMechineData.getMechineData();
+}
 
+handleMechineData(){
+    console.log(this._machineData);
+}
   ngAfterViewInit(): void {
     this.initMap();
   }
 
   private initMap(): void {
-
+    const latlng: any =[];
+    let allPolylineCoordinates: [number, number][] = [];
     this.map =new (L.Map as any)('leafletMap',{
         closePopupOnClick:false,
         scrollWheelZoom:'center',
         gestureHandling: true,
         zoomControl: false,
         attributionControl:false
-    }).setView([45.411593833, 38.9389845], 11);
-    var singleMarker = L.marker([45.411593833, 38.9389845]).addTo(this.map);
+    }).setView([52.105252167, 10.261964667]);
+
+    this._machineData.mapData.roadTripLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        this._polyline = L.polyline(coordinates as any,{
+            color:"skyblue"
+        }).addTo(this.map);
+        allPolylineCoordinates.push(coordinates as any);
+    });
+
+    this._machineData.mapData.harvestingLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        this._polyline = L.polyline(coordinates as any,{
+            color:"yellow"
+        }).addTo(this.map);
+        allPolylineCoordinates.push(coordinates as any);
+    });
+
+this._machineData.mapData.notHarvestingLinePath.forEach((line:Line) =>{
+    const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        this._polyline = L.polyline(coordinates as any,{
+        color:"red"
+    }).addTo(this.map);
+    allPolylineCoordinates.push(coordinates as any);
+});
+
+this._machineData.mapData.dischargeLinePath.forEach((line:Line) =>{
+    const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+    this._polyline = L.polyline(coordinates as any,{
+        color:"skyblue"
+    }).addTo(this.map);
+    allPolylineCoordinates.push(coordinates as any);
+});
+
+this._machineData.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+    const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+    this._polyline = L.polyline(coordinates as any,{
+        color:"red"
+    }).addTo(this.map);
+});
+
+if (allPolylineCoordinates.length > 0) {
+    const bounds = L.latLngBounds(allPolylineCoordinates);
+    this.map.fitBounds(bounds);
+}
+
+    this.map.on("click",(e)=>{
+        console.log(e.latlng.lat,e.latlng.lng);
+    });
+/*     var singleMarker = L.marker([45.411593833, 38.9389845]);
+
+    var marker2 = L.marker([45.41359333725509,38.984334775485415]);
+
+    var marker3 = L.marker([45.463740718513385,39.013176969043606]);
+
+    var features = L.featureGroup([singleMarker, marker2, marker3]).bindPopup("hello world!").addTo(this.map);
+
+    this.map.fitBounds(features.getBounds(),{
+        padding:[40,40]
+    }); */
     L.control.zoom({
         position:"bottomright",
     }).addTo(this.map);
@@ -33914,11 +33995,12 @@ constructor() { }
     });
     this.map.addControl(fsControl);
 
+    (L.control as any).fixedView({ position: 'topright' }).addTo(this.map);
     //automatic zoom 
     var homeControl = (L.control as any).defaultExtent({
         title:"automatic zoom",
         position:"topright"
-    }).setCenter([45.411593833, 38.9389845]).setZoom(12)
+    })
   .addTo(this.map);
 
         const baseLayers = {
@@ -33942,8 +34024,8 @@ constructor() { }
         keepInView:false,
         autoClose:false
     })
-    .setLatLng([45.411593833, 38.9389845])
-    .setContent(popupData())
+    .setLatLng([52.09395681970198,10.326118469238283])
+    .setContent(popupData(this._machineName))
     .openOn(this.map);
 
     
@@ -33958,7 +34040,7 @@ constructor() { }
         collapsed:false
     }).addTo(this.map);*/
 
-    this.map.on("click",(e)=>{
+    /* this.map.on("click",(e)=>{
         var latitude = e.latlng.lat;
         var longitude = e.latlng.lng;
         console.log("the latitude is :" + latitude + "the longitude" + longitude);
@@ -33968,7 +34050,7 @@ constructor() { }
     var stonehenge = L.latLng(45.411593833, 38.9389845);
         singleMarker.on('dblclick', (e)=> {
             this.map.setView(stonehenge, 16);
-        });
+        }); */
     
 
     this.map.on('enterFullscreen', function(){
@@ -34133,8 +34215,8 @@ document.getElementById("labaledButton")?.addEventListener("click",()=>{
 }
 
 //machine data styling on map
-function popupData(): L.Content | ((source: L.Layer) => L.Content) {
-    return "<div style='text-align:center;' class='machine-status-holder'> <p style='margin-bottom:2px'>6F1444</p> <img src='./assets/TigerOff.png' alt='images mechine' width='70px'> <span class='status'> offline </span></div>";
+function popupData(value:any): L.Content | ((source: L.Layer) => L.Content) {
+    return `<div style='text-align:center;' class='machine-status-holder'> <p style='margin-bottom:2px'>${value}</p> <img src='./assets/TigerOff.png' alt='images mechine' width='70px'> <span class='status'> offline </span></div>`;
 }
 
 
