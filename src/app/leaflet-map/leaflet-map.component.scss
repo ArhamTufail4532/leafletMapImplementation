@@ -8,10 +8,19 @@
     color: #b93435;
 }
 
+.mapContainer{
+  position: relative;
+  top: 50px;
+  max-width: 700px;
+  height: 500px;
+  margin: auto;
+}
+
 #leafletMap{
     width: 100%;
-    height: 500px;
+    height: 100%;
 }
+
 
 //css for showing the gesture on the leaflet map
 
