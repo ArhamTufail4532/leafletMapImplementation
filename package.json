@@ -25,7 +25,9 @@
     "leaflet.locatecontrol": "^0.81.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.13.0"
+    "zone.js": "~0.13.0",
+    "@syncfusion/ej2-angular-calendars": "^25.2.7",
+    "@syncfusion/ej2-material-theme": "~25.2.7"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^16.2.1",
