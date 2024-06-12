@@ -34,6 +34,7 @@ interface Line {
 })
 
 export class LeafletMapComponent implements OnInit, AfterViewInit {
+    private polylines: L.Polyline[] = [];
     public _machineData : any;
     _machineName : string = "";
     _polyline : any;
@@ -60,7 +61,8 @@ fetchData():void{
     const day = date?.getDate().toString().padStart(2, '0');
     const selectedDate = `${year}-${month}-${day}`
     // const selectedDateString = this.selectedDate.toISOString().split('T')[0];
-    if(this._polyline)
+    this.polylines.forEach(polyline => this.map.removeLayer(polyline));
+    this.polylines = [];
     for(var i=0 ;i<=this._machineData.length;i++)
     {
         if (this._machineData[i]?.machineCalculations?.time) {
@@ -70,59 +72,69 @@ fetchData():void{
             if (selectedDate == machineDataDateString) {
                 console.log('Match found at index:', i);
                 this.loadMap(i);
+                break;
             }else{
                 console.log("match not found!");
             }
         }
     }
   }
+
   private loadMap(i: number){  //i is index
     let allPolylineCoordinates: [number, number][] = [];
 
     this._machineData[i].mapData.roadTripLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        this._polyline = L.polyline(coordinates as any,{
+        const polyline = L.polyline(coordinates as any,{
             color:"skyblue"
         }).addTo(this.map);
+        this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
     });
 
     this._machineData[i].mapData.harvestingLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        this._polyline = L.polyline(coordinates as any,{
+        const polyline = L.polyline(coordinates as any,{
             color:"yellow"
         }).addTo(this.map);
+        this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
     });
 
     this._machineData[i].mapData.notHarvestingLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            this._polyline = L.polyline(coordinates as any,{
+            const polyline = L.polyline(coordinates as any,{
             color:"red"
         }).addTo(this.map);
+        this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
     });
 
     this._machineData[i].mapData.dischargeLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        this._polyline = L.polyline(coordinates as any,{
+        const polyline = L.polyline(coordinates as any,{
             color:"skyblue"
         }).addTo(this.map);
+        this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
     });
 
     this._machineData[i].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        this._polyline = L.polyline(coordinates as any,{
+        const polyline = L.polyline(coordinates as any,{
             color:"red"
         }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
     });
 
     this._machineData[i].mapData.timelyGapLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        this._polyline = L.polyline(coordinates as any,{
+        const polyline = L.polyline(coordinates as any,{
             color:"red"
         }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
     });
 
     
@@ -142,7 +154,7 @@ fetchData():void{
         gestureHandling: true,
         zoomControl: false,
         attributionControl:false
-    }).setView([52.105252167, 10.261964667]);
+    });
 
     this.loadMap(0);
 
