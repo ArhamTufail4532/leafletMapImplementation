@@ -36,8 +36,11 @@ interface Line {
 export class LeafletMapComponent implements OnInit, AfterViewInit {
     private polylines: L.Polyline[] = [];
     public _machineData : any;
+    _lat : number = 52.096112667;
+    _lng : number = 10.562562667;
     _machineName : string = "";
     _polyline : any;
+    homeControl : any;
     public selectedDate :any;
   private map: L.Map = {} as L.Map; // Initialize as an empty object
  
@@ -82,7 +85,9 @@ fetchData():void{
 
   private loadMap(i: number){  //i is index
     let allPolylineCoordinates: [number, number][] = [];
-
+    //this._lat=this._machineData[i].mapData.roadTripLinePath[0].coordinates[0].lat;
+    //this._lng=this._machineData[i].mapData.roadTripLinePath[0].coordinates[0].lng;
+    //console.log(this._lat + " " + this._lng);
     this._machineData[i].mapData.roadTripLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
         const polyline = L.polyline(coordinates as any,{
@@ -141,6 +146,17 @@ fetchData():void{
     if (allPolylineCoordinates.length > 0) {
         const bounds = L.latLngBounds(allPolylineCoordinates);
         this.map.fitBounds(bounds);
+        const center = bounds.getCenter();
+        if (isNaN(center.lat) || isNaN(center.lng)) {
+            console.error('Invalid center coordinates:', center.lat, center.lng);
+            return;
+        }
+        const zoom = this.map.getBoundsZoom(bounds);
+        this.homeControl.setCenter(center);
+        console.log('Calculated Zoom Level:', zoom);
+        this.homeControl.setZoom(zoom);
+    }else{
+        console.error('No valid polyline coordinates found.');
     }
 }
   private initMap(): void {
@@ -154,17 +170,25 @@ fetchData():void{
         gestureHandling: true,
         zoomControl: false,
         attributionControl:false
-    });
+    }).setView([this._lat, this._lng], 13);
 
-    this.loadMap(0);
-
-    this.map.on("click",(e)=>{
-        console.log(e.latlng.lat,e.latlng.lng);
-    });
+    L.popup({
+        offset:[1,6],
+        keepInView:false,
+        autoClose:false
+    })
+    .setLatLng([this._lat, this._lng])
+    .setContent(popupData(this._machineName[0]))
+    .openOn(this.map); 
 
     L.control.zoom({
         position:"bottomright",
     }).addTo(this.map);
+
+
+    if(!this.map){
+        console.error("Map initialization failed.");
+    }
 
     //google map initilization througth the 
     var googlehybrid = (L.gridLayer as any).googleMutant({
@@ -177,7 +201,16 @@ fetchData():void{
     var terrainMutant = (L.gridLayer as any).googleMutant({
         type: "terrain",
     });
-    googlehybrid.addTo(this.map);
+
+    if (terrainMutant) {
+        terrainMutant.addTo(this.map);
+    } else {
+        console.error("Failed to create terrain layer.");
+    }
+
+    if (!this.map.hasLayer(terrainMutant)) {
+        console.error("Terrain layer was not added to the map.");
+    }
 
     // full screen view control implementation
     var fsControl = (L.control as any).fullscreen({
@@ -187,10 +220,10 @@ fetchData():void{
 
     (L.control as any).fixedView({ position: 'topright' }).addTo(this.map);
     //automatic zoom 
-    var homeControl = (L.control as any).defaultExtent({
+    this.homeControl = (L.control as any).defaultExtent({
         title:"automatic zoom",
         position:"topright"
-    })
+    }).setCenter([this._lat,this._lng])
   .addTo(this.map);
 
         const baseLayers = {
@@ -206,17 +239,9 @@ fetchData():void{
     }).addTo(this.map);
 
     //single Marker on map Implementaion
-    
 
     //popup for mechine data 
-    var popup = L.popup({
-        offset:[1,6],
-        keepInView:false,
-        autoClose:false
-    })
-    .setLatLng([52.09395681970198,10.326118469238283])
-    .setContent(popupData(this._machineName[0]))
-    .openOn(this.map); 
+    
 
     this.map.on('enterFullscreen', function(){
         if(window.console) window.console.log('enterFullscreen');
@@ -236,60 +261,7 @@ fetchData():void{
         position:'topleft'
     }).addTo(this.map); 
 
-    var parentElement = document.querySelector('.leaflet-control-layers-base') as HTMLElement;
-    var labels = parentElement.querySelectorAll('label');
-    labels.forEach(function(label) {
-    var button = document.createElement('button');
-    button.textContent = (label.textContent as any).trim();
-    parentElement.replaceChild(button, label);
-});
-
-var firstButton = parentElement.querySelector("button:first-child");
-var secondButton = parentElement.querySelector("button:last-child");
-firstButton?.setAttribute("id","mapButton");
-secondButton?.setAttribute("id","labaledButton");
-firstButton?.classList.add("dropdown");
-secondButton?.classList.add("dropdown");
-var parentContiner = document.createElement("div");
-parentContiner.classList.add("dropdown-content");
-var radiobutton = document.createElement("input");
-radiobutton.setAttribute("type","radio");
-radiobutton.setAttribute("name","leaflet-base-layers");
-radiobutton.setAttribute("checked","checked");
-radiobutton.classList.add("leaflet-control-layers-selector");
-var buttonspan = document.createElement("span");
-var text = document.createTextNode("tarrian");
-buttonspan.appendChild(text);
-parentContiner.append(radiobutton);
-parentContiner.appendChild(buttonspan);
-firstButton?.appendChild(parentContiner);
-
-var parentContiner = document.createElement("div");
-parentContiner.classList.add("dropdown-content");
-var radiobutton = document.createElement("input");
-radiobutton.setAttribute("type","radio");
-radiobutton.setAttribute("name","leaflet-base-layers");
-radiobutton.classList.add("leaflet-control-layers-selector");
-var buttonspan = document.createElement("span");
-var text = document.createTextNode("labled");
-buttonspan.appendChild(text);
-parentContiner.append(radiobutton);
-parentContiner.appendChild(buttonspan);
-secondButton?.appendChild(parentContiner);
-
-
-document.getElementById("mapButton")?.addEventListener("click",()=>{
-    this.map.removeLayer(googlehybrid);
-    this.map.addLayer(terrainMutant);
-});
-
-document.getElementById("labaledButton")?.addEventListener("click",()=>{
-    this.map.removeLayer(terrainMutant);
-    this.map.addLayer(googlehybrid);
-});
- 
-
-  }
+}
 
   private addPolyline(coordinates: any[], color: string): void {
     const polyline = L.polyline(coordinates, { color: color }).addTo(this.map);
@@ -307,5 +279,6 @@ document.getElementById("labaledButton")?.addEventListener("click",()=>{
 function popupData(value:any): L.Content | ((source: L.Layer) => L.Content) {
     return `<div style='text-align:center;' class='machine-status-holder'> <p style='margin-bottom:2px'>${value}</p> <img src='./assets/TigerOff.png' alt='images mechine' width='70px'> <span class='status'> offline </span></div>`;
 }
+
 
 

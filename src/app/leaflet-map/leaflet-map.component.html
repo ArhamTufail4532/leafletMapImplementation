@@ -1,12 +1,13 @@
 <!-- leaflet-map.component.html -->
 
 <div class="mapContainer">
-
-    <div id="leafletMap"></div>
-
+    <div class="container">
+        <ejs-daterangepicker (change)="onDateSelected($event)"></ejs-daterangepicker>
+    </div>
+    <div class="mapstyle">
+        <div id="leafletMap"></div>
+    </div>
 </div>
 
-<div class="container">
-    <ejs-daterangepicker (change)="onDateSelected($event)"></ejs-daterangepicker>
-</div>
+
 
