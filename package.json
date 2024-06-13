@@ -18,16 +18,17 @@
     "@angular/platform-browser": "^16.2.0",
     "@angular/platform-browser-dynamic": "^16.2.0",
     "@angular/router": "^16.2.0",
+    "@syncfusion/ej2-angular-calendars": "^25.2.7",
+    "@syncfusion/ej2-material-theme": "~25.2.7",
     "leaflet": "^1.9.4",
     "leaflet-gesture-handling": "^1.2.2",
     "leaflet.fullscreen": "^3.0.2",
     "leaflet.gridlayer.googlemutant": "^0.14.1",
     "leaflet.locatecontrol": "^0.81.1",
+    "leaflet.markercluster": "^1.5.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.13.0",
-    "@syncfusion/ej2-angular-calendars": "^25.2.7",
-    "@syncfusion/ej2-material-theme": "~25.2.7"
+    "zone.js": "~0.13.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^16.2.1",

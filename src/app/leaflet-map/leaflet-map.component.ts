@@ -2,12 +2,14 @@ import { Component, OnInit, AfterViewInit, Attribute, HostListener } from '@angu
 import * as L from 'leaflet';
 import { MapData } from '../interfaces/MapData';
 import { MechineDataServiceService } from '../mechine-data-service.service';
+import { MultipleMachineDataService } from '../multiple-machine-data.service';
 import "leaflet.gridlayer.googlemutant";
 import "leaflet.fullscreen";
 import { RangeEventArgs } from '@syncfusion/ej2-angular-calendars';
 import "src/assets/leaflet-gesture-handling.js";
 import "src/assets/leaflet-control-defaulthome.js";
 import "src/assets/leaflet-control-dummy.js";
+import "leaflet.markercluster";
 import { __metadata } from 'tslib';
 
 interface MachineData {
@@ -36,16 +38,18 @@ interface Line {
 export class LeafletMapComponent implements OnInit, AfterViewInit {
     private polylines: L.Polyline[] = [];
     public _machineData : any;
+    private _markers : any;    
     _lat : number = 52.096112667;
     _lng : number = 10.562562667;
     _machineName : string = "";
     _polyline : any;
     homeControl : any;
+    jsonData : any;
     public selectedDate :any;
   private map: L.Map = {} as L.Map; // Initialize as an empty object
  
 
-constructor(private _singleMechineData: MechineDataServiceService) { }
+constructor(private _singleMechineData: MechineDataServiceService, private _multipleMechineData:MultipleMachineDataService) { }
 
   ngOnInit(): void {
     this.fetchData();
@@ -55,7 +59,40 @@ fetchData():void{
 }
   ngAfterViewInit(): void {
     this.initMap();
+    this.loadMarker();
+    this.fitMapToBounds();
   }
+
+
+  private loadMarker(): void {
+    const mapInfoWindow = this._multipleMechineData.getMultipleMechineData().mapInfoWindowDto.harvestingMapInfoWindows;
+
+    mapInfoWindow.forEach(infoWindow => {
+        const{ lat , lng } = infoWindow.mapInfoWindowCoordinate;
+        var marker = L.marker([lat, lng])
+        .bindPopup(popupData(this._multipleMechineData.getMultipleMechineData().mapInfoWindowDto.harvestingMapInfoWindows[0].infoWindowContent));
+        this._markers.addLayer(marker);
+    });
+    this.map.addLayer(this._markers);
+  }
+
+  private fitMapToBounds(): void {
+    const mapInfoWindows = this._multipleMechineData.getMultipleMechineData().mapInfoWindowDto.harvestingMapInfoWindows;
+    const latLngs: L.LatLngExpression[] = mapInfoWindows.map(infoWindow => {
+      return [infoWindow.mapInfoWindowCoordinate.lat, infoWindow.mapInfoWindowCoordinate.lng];
+    });
+
+    if (latLngs.length > 0) {
+      const bounds = L.latLngBounds(latLngs);
+      this.map.fitBounds(bounds);
+      const center = bounds.getCenter();
+      const zoom = this.map.getBoundsZoom(bounds);
+        this.homeControl.setCenter(center);
+        console.log('Calculated Zoom Level:', zoom);
+        this.homeControl.setZoom(zoom);
+    }
+  }
+
 
   onDateSelected(args: RangeEventArgs): void  {
     let date = args.startDate;
@@ -169,8 +206,12 @@ fetchData():void{
         scrollWheelZoom:'center',
         gestureHandling: true,
         zoomControl: false,
-        attributionControl:false
-    }).setView([this._lat, this._lng], 13);
+        attributionControl:false,
+        maxZoom: 18
+    }).setView([this._lat, this._lng], 4);
+
+    this._markers = (L as any).markerClusterGroup({
+    });
 
     L.popup({
         offset:[1,6],
@@ -281,4 +322,16 @@ function popupData(value:any): L.Content | ((source: L.Layer) => L.Content) {
 }
 
 
+
+function getRandomLatLng(map: L.Map): L.LatLngExpression {
+    var bounds = map.getBounds();
+    var southWest = bounds.getSouthWest();
+    var northEast = bounds.getNorthEast();
+    var lngSpan = northEast.lng - southWest.lng;
+    var latSpan = northEast.lat - southWest.lat;
+    return new L.LatLng(
+      southWest.lat + (latSpan * Math.random()),
+      southWest.lng + (lngSpan * Math.random())
+    );
+}
 
