@@ -210,12 +210,6 @@ style attribute {
     background-repeat: no-repeat;
   }
 
-  .active{
-    background-image: url('./assets/pinSelect1.svg');
-    background-size: 26px 26px;
-    background-repeat: no-repeat;
-  }
-
   .marker-cluster-small {
     background-color: rgba(181, 226, 140, 0.6);
     }
@@ -295,4 +289,16 @@ a.custom-control-toggle:focus{
   background-image: url('./assets/show-machine.svg');
     background-size: 26px 26px;
     background-repeat: no-repeat;
+}
+
+.fixedViewControlToggel.active {
+  background-image: url('./assets/pinSelect1.svg');
+    background-size: 26px 26px;
+    background-repeat: no-repeat;
+}
+
+.fixedViewControlToggel.fixed-inactive {
+  background-image: url('./assets/pinSelect1.svg');
+  background-size: 26px 26px;
+  background-repeat: no-repeat;
 }

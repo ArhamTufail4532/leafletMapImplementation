@@ -3,20 +3,26 @@ import * as L from 'leaflet';
 import { MapData } from '../interfaces/MapData';
 import { MechineDataServiceService } from '../mechine-data-service.service';
 import { MultipleMachineDataService } from '../multiple-machine-data.service';
+import { MultipleMechineLinePathService } from '../multiple-mechine-line-path.service';
 import "leaflet.gridlayer.googlemutant";
 import "leaflet.fullscreen";
 import { RangeEventArgs } from '@syncfusion/ej2-angular-calendars';
 import "src/assets/leaflet-gesture-handling.js";
 import "src/assets/leaflet-control-defaulthome.js";
-import "src/assets/leaflet-control-dummy.js";
+import "src/assets/leaflet-control-FixedView.js";
 import "leaflet.markercluster";
 import { __metadata } from 'tslib';
 import "src/assets/leaflet-control-markers.js";
+import { Coordinate } from '../interfaces/Coordinate';
 
 interface MachineData {
     machineCalculations: {
         time: string;
     }
+  }
+
+  interface Path {
+    coordinates: Coordinate[];
   }
   
   interface JsonDataItem {
@@ -47,10 +53,12 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     homeControl : any;
     jsonData : any;
     public selectedDate :any;
+    private polylinesLayer: any;
+    private polygonsLayer: any;
   private map: L.Map = {} as L.Map; // Initialize as an empty object
  
 
-constructor(private _singleMechineData: MechineDataServiceService, private _multipleMechineData:MultipleMachineDataService) { }
+constructor(private _singleMechineData: MechineDataServiceService, private _multipleMechineData:MultipleMachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService) { }
 
   ngOnInit(): void {
     this.fetchData();
@@ -61,10 +69,44 @@ fetchData():void{
   ngAfterViewInit(): void {
     this.initMap();
     this.loadMarker();
+    this.loadLineAndPolygon();
     this.fitMapToBounds();
   }
 
+  private loadLineAndPolygon(){
+    var polylinedto = this._multipleMachineLinePath.getAllMechineLinePath().machinePolylineDto.roadTripLinePath;
+    var polygondto = this._multipleMachineLinePath.getAllMechineLinePath().machinePolylineDto.harvestingPolygonPath;
+    polylinedto.forEach(path => {
+        const latLngs = path.coordinates.map(coord => L.latLng(coord.lat, coord.lng));
+        this.addPolylineToMap(latLngs);
+      });
 
+      polygondto.forEach(path => {
+        const latLngs = path.coordinates.map(coord => [coord.lat, coord.lng]);
+        this.addPolygonToMap(latLngs);
+      });
+      this.fitBounds();
+  }
+
+  private fitBounds(): void {
+    const allLayers = [this.polylinesLayer.getLayers(), this.polygonsLayer.getLayers()];
+    if (allLayers.length > 0) {
+      const group = new L.FeatureGroup(allLayers);
+      this.map.fitBounds(group.getBounds());
+    } else {
+      console.warn('No polylines or polygons to fit bounds.');
+    }
+  }
+
+  private addPolylineToMap(latLngs: L.LatLng[]): void {
+    const polyline = L.polyline(latLngs, { color: '#7acdef', weight: 4, opacity: 0.7 });
+    this.polylinesLayer.addLayer(polyline);
+  }
+
+  private addPolygonToMap(latLngs: any[]): void {
+    const polygon = L.polygon(latLngs, { color: 'yellow', fillColor: 'red', weight: 2, opacity: 0.7 });
+    this.polygonsLayer.addLayer(polygon);
+  }
   private loadMarker(): void {
     const mapInfoWindow = this._multipleMechineData.getMultipleMechineData().mapInfoWindowDto.harvestingMapInfoWindows;
 
@@ -211,6 +253,8 @@ fetchData():void{
         maxZoom: 18
     }).setView([this._lat, this._lng], 4);
 
+    this.polylinesLayer = L.layerGroup().addTo(this.map);
+    this.polygonsLayer = L.layerGroup().addTo(this.map);
     this._markers = (L as any).markerClusterGroup({
     });
 
