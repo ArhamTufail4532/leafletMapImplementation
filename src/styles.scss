@@ -276,3 +276,23 @@ style attribute {
   .marker-cluster span {
     line-height: 30px;
     }
+
+    /* Example CSS to style the custom control */
+.custom-control-toggle{
+  background-image: url('./assets/hide-machine.svg');
+    background-size: 26px 26px;
+    background-repeat: no-repeat;
+}
+
+.leaflet-control.custom-Control-Window {
+  padding: 5px -1px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
+a.custom-control-toggle:focus{
+  background-image: url('./assets/show-machine.svg');
+    background-size: 26px 26px;
+    background-repeat: no-repeat;
+}

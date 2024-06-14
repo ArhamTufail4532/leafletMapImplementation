@@ -11,6 +11,7 @@ import "src/assets/leaflet-control-defaulthome.js";
 import "src/assets/leaflet-control-dummy.js";
 import "leaflet.markercluster";
 import { __metadata } from 'tslib';
+import "src/assets/leaflet-control-markers.js";
 
 interface MachineData {
     machineCalculations: {
@@ -266,6 +267,8 @@ fetchData():void{
         position:"topright"
     }).setCenter([this._lat,this._lng])
   .addTo(this.map);
+
+  (L.control as any).customControl({ position: 'topright', markers: this._markers }).addTo(this.map);
 
         const baseLayers = {
             "satellite":googlehybrid,
