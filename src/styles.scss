@@ -302,3 +302,23 @@ a.custom-control-toggle:focus{
   background-size: 26px 26px;
   background-repeat: no-repeat;
 }
+
+.leaflet-interactive {
+  cursor: pointer;
+  fill: none;
+}
+
+.custom-div-icon {
+  position: relative;
+  top: -60px;
+}
+
+.label-icon {
+  color: #000;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  position: relative;
+    top: -66px;
+    left: 26px;
+}

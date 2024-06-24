@@ -69,11 +69,11 @@ fetchData():void{
   ngAfterViewInit(): void {
     this.initMap();
     this.loadMarker();
-    this.loadLineAndPolygon();
+    //this.loadLineAndPolygon();
     this.fitMapToBounds();
   }
 
-  private loadLineAndPolygon(){
+  /*private loadLineAndPolygon(){
     var polylinedto = this._multipleMachineLinePath.getAllMechineLinePath().machinePolylineDto.roadTripLinePath;
     var polygondto = this._multipleMachineLinePath.getAllMechineLinePath().machinePolylineDto.harvestingPolygonPath;
     polylinedto.forEach(path => {
@@ -85,17 +85,6 @@ fetchData():void{
         const latLngs = path.coordinates.map(coord => [coord.lat, coord.lng]);
         this.addPolygonToMap(latLngs);
       });
-      this.fitBounds();
-  }
-
-  private fitBounds(): void {
-    const allLayers = [this.polylinesLayer.getLayers(), this.polygonsLayer.getLayers()];
-    if (allLayers.length > 0) {
-      const group = new L.FeatureGroup(allLayers);
-      this.map.fitBounds(group.getBounds());
-    } else {
-      console.warn('No polylines or polygons to fit bounds.');
-    }
   }
 
   private addPolylineToMap(latLngs: L.LatLng[]): void {
@@ -106,14 +95,13 @@ fetchData():void{
   private addPolygonToMap(latLngs: any[]): void {
     const polygon = L.polygon(latLngs, { color: 'yellow', fillColor: 'red', weight: 2, opacity: 0.7 });
     this.polygonsLayer.addLayer(polygon);
-  }
+  } */
   private loadMarker(): void {
     const mapInfoWindow = this._multipleMechineData.getMultipleMechineData().mapInfoWindowDto.harvestingMapInfoWindows;
 
     mapInfoWindow.forEach(infoWindow => {
         const{ lat , lng } = infoWindow.mapInfoWindowCoordinate;
-        var marker = L.marker([lat, lng])
-        .bindPopup(popupData(this._multipleMechineData.getMultipleMechineData().mapInfoWindowDto.harvestingMapInfoWindows[0].infoWindowContent));
+        var marker = L.marker([lat, lng],{ opacity: 0, zIndexOffset: -1000 });
         this._markers.addLayer(marker);
     });
     this.map.addLayer(this._markers);
@@ -171,7 +159,7 @@ fetchData():void{
     this._machineData[i].mapData.roadTripLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
         const polyline = L.polyline(coordinates as any,{
-            color:"skyblue"
+            color:"#7aceef"
         }).addTo(this.map);
         this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
@@ -180,7 +168,7 @@ fetchData():void{
     this._machineData[i].mapData.harvestingLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
         const polyline = L.polyline(coordinates as any,{
-            color:"yellow"
+            color:"#ffc107"
         }).addTo(this.map);
         this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
@@ -189,7 +177,7 @@ fetchData():void{
     this._machineData[i].mapData.notHarvestingLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
             const polyline = L.polyline(coordinates as any,{
-            color:"red"
+            color:"#fd7e14"
         }).addTo(this.map);
         this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
@@ -198,7 +186,7 @@ fetchData():void{
     this._machineData[i].mapData.dischargeLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
         const polyline = L.polyline(coordinates as any,{
-            color:"skyblue"
+            color:"#7aceef"
         }).addTo(this.map);
         this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
@@ -207,7 +195,7 @@ fetchData():void{
     this._machineData[i].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
         const polyline = L.polyline(coordinates as any,{
-            color:"red"
+            color:"#84b960"
         }).addTo(this.map);
         this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
@@ -216,10 +204,40 @@ fetchData():void{
     this._machineData[i].mapData.timelyGapLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
         const polyline = L.polyline(coordinates as any,{
-            color:"red"
+            color:"#fd7e14"
         }).addTo(this.map);
         this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
+    });
+
+    /* this._machineData[i].forEach(data => {
+      const harvestingMarkers = data.mapMarkers.harvestingMapMarkers;
+      harvestingMarkers.forEach(marker => {
+        L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng])
+          .addTo(this.map)
+          .bindPopup(marker.markerLabel);
+      });
+    }); */
+
+    const customIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: `<img alt="" src="./assets/red-flag.png" draggable="false" style="width: 66px; height: 62px; user-select: none; border: 0px; padding: 0px; margin: 0px; max-width: none;">`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
+    });
+
+
+    const data = this._machineData[i].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
+      L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
+      .addTo(this.map);
+      const label = L.divIcon({
+        className: 'label-icon',
+        html: `<div>${marker.markerLabel}</div>`,
+        iconSize: [30, 0]
+      });
+
+      L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+        .addTo(this.map);
     });
 
     
