@@ -1,0 +1,28 @@
+
+
+<div style="width:100%; text-align: center; margin-top: 10px;">
+    <button mat-raised-button style="margin-right: 10px;" (click)="setView('singleMachine')">SingleMachineView</button>
+    <button mat-raised-button style="margin-right: 10px;" (click)="setView('extendView')">ExtendView</button>
+    <button mat-raised-button style="margin-right: 10px;" (click)="setView('mapView')">MapView</button>
+</div>
+
+<div *ngIf="view === 'singleMachine'">
+    <app-single-machine-view></app-single-machine-view>
+  </div>
+  <div *ngIf="view === 'extendView'">
+    <app-single-machine-view-extend></app-single-machine-view-extend>
+  </div>
+  <div *ngIf="view === 'mapView'">
+    <app-map-view></app-map-view>
+  </div>
+  
+
+<!--<div>
+    <app-single-machine-view></app-single-machine-view>
+</div>
+<div>
+    <app-map-view></app-map-view>
+</div>
+<div>
+    <app-single-machine-view-extend></app-single-machine-view-extend>
+</div>-->

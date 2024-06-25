@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, Attribute, HostListener } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Attribute, HostListener, Input } from '@angular/core';
 import * as L from 'leaflet';
 import { MapData } from '../interfaces/MapData';
 import { MechineDataServiceService } from '../mechine-data-service.service';
@@ -14,6 +14,7 @@ import "leaflet.markercluster";
 import { __metadata } from 'tslib';
 import "src/assets/leaflet-control-markers.js";
 import { Coordinate } from '../interfaces/Coordinate';
+import { Lagends } from '../Models/Lagends.model';
 
 interface MachineData {
     machineCalculations: {
@@ -43,6 +44,13 @@ interface Line {
 })
 
 export class LeafletMapComponent implements OnInit, AfterViewInit {
+
+  @Input() showZoomControl: boolean = true;
+  @Input() showFullscreenControl: boolean = true;
+  @Input() showScaleControl: boolean = true;
+  @Input() showClusterControl: boolean = true;
+  @Input() legends: Lagends = new Lagends();
+
     private polylines: L.Polyline[] = [];
     public _machineData : any;
     private _markers : any;    
@@ -52,27 +60,37 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     _polyline : any;
     homeControl : any;
     jsonData : any;
+    _ZoomControl : any;
     public selectedDate :any;
     private polylinesLayer: any;
     private polygonsLayer: any;
-  private map: L.Map = {} as L.Map; // Initialize as an empty object
+    private map: L.Map = {} as L.Map; // Initialize as an empty object
  
 
-constructor(private _singleMechineData: MechineDataServiceService, private _multipleMechineData:MultipleMachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService) { }
+constructor(private _singleMechineData: MechineDataServiceService, private _multipleMechineData:MultipleMachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService) { 
+  
+}
 
   ngOnInit(): void {
     this.fetchData();
+    if(this.map){
+      this.map.off();
+      this.map.remove();
+      console.log("map remove");
+    }
   }
 fetchData():void{
     this._machineData = this._singleMechineData.getMechineData();
 }
   ngAfterViewInit(): void {
     this.initMap();
-    this.loadMarker();
+    if(this.showClusterControl)
+    {
+        this.loadMarker();
+    }
     //this.loadLineAndPolygon();
     this.fitMapToBounds();
   }
-
   /*private loadLineAndPolygon(){
     var polylinedto = this._multipleMachineLinePath.getAllMechineLinePath().machinePolylineDto.roadTripLinePath;
     var polygondto = this._multipleMachineLinePath.getAllMechineLinePath().machinePolylineDto.harvestingPolygonPath;
@@ -104,7 +122,7 @@ fetchData():void{
         var marker = L.marker([lat, lng],{ opacity: 0, zIndexOffset: -1000 });
         this._markers.addLayer(marker);
     });
-    this.map.addLayer(this._markers);
+        this.map.addLayer(this._markers);
   }
 
   private fitMapToBounds(): void {
@@ -258,11 +276,10 @@ fetchData():void{
     }
 }
   private initMap(): void {
-
-    
     const latlng: any =[];
     // let allPolylineCoordinates: [number, number][] = [];
-    this.map =new (L.Map as any)('leafletMap',{
+    
+    this.map =(L.map as any)('leafletMap',{
         closePopupOnClick:false,
         scrollWheelZoom:'center',
         gestureHandling: true,
@@ -273,8 +290,12 @@ fetchData():void{
 
     this.polylinesLayer = L.layerGroup().addTo(this.map);
     this.polygonsLayer = L.layerGroup().addTo(this.map);
-    this._markers = (L as any).markerClusterGroup({
-    });
+
+    if(this.showClusterControl)
+    {
+        this._markers = (L as any).markerClusterGroup({
+        });
+    }
 
     L.popup({
         offset:[1,6],
@@ -285,7 +306,7 @@ fetchData():void{
     .setContent(popupData(this._machineName[0]))
     .openOn(this.map); 
 
-    L.control.zoom({
+    this._ZoomControl = L.control.zoom({
         position:"bottomright",
     }).addTo(this.map);
 
@@ -306,22 +327,20 @@ fetchData():void{
         type: "terrain",
     });
 
-    if (terrainMutant) {
-        terrainMutant.addTo(this.map);
+    if (googlehybrid) {
+        googlehybrid.addTo(this.map);
     } else {
         console.error("Failed to create terrain layer.");
     }
 
-    if (!this.map.hasLayer(terrainMutant)) {
-        console.error("Terrain layer was not added to the map.");
-    }
-
     // full screen view control implementation
-    var fsControl = (L.control as any).fullscreen({
-        position:'topright'
-    });
-    this.map.addControl(fsControl);
-
+    if(this.showFullscreenControl==true)
+      {
+        var fsControl = (L.control as any).fullscreen({
+          position:'topright'
+        });
+        this.map.addControl(fsControl);
+      }
     (L.control as any).fixedView({ position: 'topright' }).addTo(this.map);
     //automatic zoom 
     this.homeControl = (L.control as any).defaultExtent({
@@ -330,7 +349,11 @@ fetchData():void{
     }).setCenter([this._lat,this._lng])
   .addTo(this.map);
 
-  (L.control as any).customControl({ position: 'topright', markers: this._markers }).addTo(this.map);
+  if(this.showClusterControl==true)
+    {
+      (L.control as any).customControl({ position: 'topright', markers: this._markers }).addTo(this.map);
+    }
+  
 
         const baseLayers = {
             "satellite":googlehybrid,
