@@ -1,0 +1,45 @@
+
+.subheader {    
+    background: #b1b3b4;
+    padding: 5px 26px 5px 15px;
+    position: relative;
+    margin-bottom: 10px;
+    display: inline-block;
+    vertical-align: middle;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.header-content-area {
+    text-align: center;
+    display: inline-block;
+    vertical-align: middle;
+    width: 60%;
+}
+
+.ellipsis {
+    text-transform: capitalize;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: inline-block !important;
+}
+
+.subheader h2.text-danger {
+    text-align: right;
+    display: block;
+    vertical-align: middle;
+    float: right;
+    color: red;
+}
+
+.subheader h2 {
+    float: left;
+    margin-left: 20px;
+}
+
+.common-header {
+    max-width: 430px;
+    padding: 0 0 0 15px;
+    float: right;
+}

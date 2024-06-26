@@ -15,6 +15,7 @@ import { __metadata } from 'tslib';
 import "src/assets/leaflet-control-markers.js";
 import { Coordinate } from '../interfaces/Coordinate';
 import { Lagends } from '../Models/Lagends.model';
+import { inputs } from '@syncfusion/ej2-angular-calendars/src/calendar/calendar.component';
 
 interface MachineData {
     machineCalculations: {
@@ -49,6 +50,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
   @Input() showFullscreenControl: boolean = true;
   @Input() showScaleControl: boolean = true;
   @Input() showClusterControl: boolean = true;
+  @Input() extendControl: boolean = true;
+  @Input() dateRangePickerValue: boolean = true;
   @Input() legends: Lagends = new Lagends();
 
     private polylines: L.Polyline[] = [];
@@ -563,6 +566,39 @@ private toggleLegend(selector: string) {
         greenLi.classList.add('hidden');
       }
     }
+  if(this.extendControl!=true)
+  {
+    var extendView = document.querySelector(".icon-fullscreen");
+    if(extendView){
+      extendView.classList.add("hidden");
+    }
+  }
+  if(this.legends.isUnloading!=true){
+    const mapstyle = document.querySelector("#leafletMap");
+    const map = document.querySelector(".mapstyle");
+    if(mapstyle){
+      mapstyle.classList.add("mapwidth");
+      (document.querySelector(".mapstyle") as any).style.width = 100+"%";
+      (document.querySelector(".mapstyle") as any).style.padding = 0+"px";
+    }
+    if (this.map) { 
+      setTimeout(() => {
+        this.map.invalidateSize();
+      }, 200); 
+    }
+  }else{
+  }
+  const extendButton = document.querySelector(".icon-fullscreen");
+  const mapstyle = document.querySelector(".mapstyle");
+  extendButton?.addEventListener("click",()=>{
+      (mapstyle as any).style.width = 100+"%";
+      (extendButton as any).style.display = "none";
+      if (this.map) { 
+        setTimeout(() => {
+          this.map.invalidateSize();
+        }, 200); 
+      }
+  });
 }
 
   private addPolyline(coordinates: any[], color: string): void {

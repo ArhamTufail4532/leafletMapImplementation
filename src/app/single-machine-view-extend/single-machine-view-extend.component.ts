@@ -10,6 +10,7 @@ import { Lagends } from '../Models/Lagends.model';
 export class SingleMachineViewExtendComponent { //multiple dates selecting implementation on a single Machine
   _machineData : any;
   legends: Lagends = new Lagends();
+  dateRangePicker : any;
   constructor(private _singleMechineData: MechineDataServiceService) { }
 
   ngOnInit(): void {
@@ -18,5 +19,6 @@ export class SingleMachineViewExtendComponent { //multiple dates selecting imple
   fetchData():void{
     this._machineData = this._singleMechineData.getMechineData();
     this.legends.isUnloading = false;
+    this.dateRangePicker = false;
   }
 }

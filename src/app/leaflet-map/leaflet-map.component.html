@@ -1,12 +1,23 @@
 
 <!-- leaflet-map.component.html -->
-
-<div class="mapContainer">
-    <div class="container">
-        <div style="width: 100%; text-align: center;"><h1>Date Range Picker</h1></div>
-        <ejs-daterangepicker (change)="onDateSelected($event)"></ejs-daterangepicker>
+ <div class="container">
+    <div class="header-content-area">
+        <h1>single view map</h1>
+        <h1 class="ellipsis">Ropa Tiger 5 6F1401 RoSiMa , RT5...</h1>
+        <h2 class="text-danger ng-star-inserted"> Offline for 2 months 2 days</h2>
     </div>
+    <div class="dateRangePicker">
+        <div style="float: right;width: 100%;">
+            <ejs-daterangepicker (change)="onDateSelected($event)"></ejs-daterangepicker>
+        </div>
+    </div>
+</div>
+<div class="mapContainer">
     <div class="mapstyle">
+        <div class="machineContent">
+                <h2 class="singleMapHeading">MAP</h2>
+                <h2 class="lastDatePosition">last know position since 4/24/2024, 6:29:57 PM</h2>
+         </div>
         <div id="leafletMap"></div>
             <div class="map-info">
                 <ul class="component ng-star-inserted">
