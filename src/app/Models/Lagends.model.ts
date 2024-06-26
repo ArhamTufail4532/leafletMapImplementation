@@ -1,6 +1,6 @@
 export class Lagends{
-        isLifting?: boolean;
-        isNoLifting?: boolean;
-        isRoad?: boolean;
-        isUnloading?: boolean;
+        isLifting: boolean = true;
+        isNoLifting: boolean = true;
+        isRoad: boolean = true;
+        isUnloading: boolean = true;
 }

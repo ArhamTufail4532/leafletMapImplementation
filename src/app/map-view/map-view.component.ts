@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { MechineDataServiceService } from '../mechine-data-service.service';
+import { Lagends } from '../Models/Lagends.model';
 
 @Component({
   selector: 'app-map-view',
@@ -9,6 +10,7 @@ import { MechineDataServiceService } from '../mechine-data-service.service';
 export class MapViewComponent { //selecting multiple Dates and Showing Multiple Machines
 
   _machineData:any;
+  legends: Lagends = new Lagends();
 
   constructor(private _singleMechineData: MechineDataServiceService) { }
 
@@ -17,6 +19,6 @@ export class MapViewComponent { //selecting multiple Dates and Showing Multiple 
   }
   fetchData():void{
     this._machineData = this._singleMechineData.getMechineData();
-    console.log(this._machineData);
+    this.legends.isUnloading = false;
   }
 }

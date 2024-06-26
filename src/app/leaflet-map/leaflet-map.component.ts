@@ -503,34 +503,66 @@ private toggleLegend(selector: string) {
         position:'topleft'
     }).addTo(this.map); 
 
-    var yellowLi = document.querySelector('.component li .yellow-box')?.parentElement as HTMLElement;
-    var redLi = document.querySelector('.component li .red-box')?.parentElement as HTMLElement;
-    var blueLi = document.querySelector('.component li .blue-box')?.parentElement as HTMLElement;
-    var greenLi = document.querySelector('.component li .green-box')?.parentElement as HTMLElement;
-    // Attach click event listener to the yellowLi
-    if (yellowLi) {
-      yellowLi.addEventListener('click', () => {
-          this.toggleLegendAndPaths('yellow');
-      });
+    if(this.legends.isLifting)
+    {
+        var yellowLi = document.querySelector('.component li .yellow-box')?.parentElement as HTMLElement;
+        if (yellowLi) {
+          yellowLi.addEventListener('click', () => {
+              this.toggleLegendAndPaths('yellow');
+          });
+        }else{
+            console.log("yellow li not found!");
+        }
     }else{
-        console.log("yellow li not found!");
+      var yellowLi = document.querySelector('.component li .yellow-box')?.parentElement as HTMLElement;
+      if (yellowLi) {
+        yellowLi.classList.add('hidden');
+      }
     }
-  if (redLi) {
-      redLi.addEventListener('click', () => {
-          this.toggleLegendAndPaths('red');
-      });
-  }
-  if (blueLi) {
-      blueLi.addEventListener('click', () => {
-          this.toggleLegendAndPaths('blue');
-      });
-  }
-  if (greenLi) {
-      greenLi.addEventListener('click', () => {
-          this.toggleLegendAndPaths('green');
-      });
-  }
 
+    if(this.legends.isNoLifting)
+    {
+        var redLi = document.querySelector('.component li .red-box')?.parentElement as HTMLElement;
+        if (redLi) {
+          redLi.addEventListener('click', () => {
+              this.toggleLegendAndPaths('red');
+          });
+      }
+    }else{
+      var redLi = document.querySelector('.component li .red-box')?.parentElement as HTMLElement;
+      if (redLi) {
+        redLi.classList.add('hidden');
+      }
+    }
+    
+    console.log("on leaflet map"+this.legends.isRoad);
+    if(this.legends.isRoad){
+      var blueLi = document.querySelector('.component li .blue-box')?.parentElement as HTMLElement;
+      if (blueLi) {
+        blueLi.addEventListener('click', () => {
+            this.toggleLegendAndPaths('blue');
+        });
+      }
+    }else{
+      var blueLi = document.querySelector('.component li .blue-box')?.parentElement as HTMLElement;
+      if (blueLi) {
+        blueLi.classList.add('hidden');
+      }
+    }
+
+    if(this.legends.isUnloading){
+      var greenLi = document.querySelector('.component li .green-box')?.parentElement as HTMLElement;
+      if (greenLi) {
+        greenLi.addEventListener('click', () => {
+            this.toggleLegendAndPaths('green');
+        });
+      }
+    }else{
+      const greenLi = document.querySelector('.component li .green-box')?.parentElement as HTMLElement;
+      if (greenLi) {
+        greenLi.classList.add('hidden');
+      }
+    }
 }
 
   private addPolyline(coordinates: any[], color: string): void {

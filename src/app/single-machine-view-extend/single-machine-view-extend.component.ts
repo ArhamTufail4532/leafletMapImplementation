@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { MechineDataServiceService } from '../mechine-data-service.service';
+import { Lagends } from '../Models/Lagends.model';
 
 @Component({
   selector: 'app-single-machine-view-extend',
@@ -8,7 +9,7 @@ import { MechineDataServiceService } from '../mechine-data-service.service';
 })
 export class SingleMachineViewExtendComponent { //multiple dates selecting implementation on a single Machine
   _machineData : any;
-
+  legends: Lagends = new Lagends();
   constructor(private _singleMechineData: MechineDataServiceService) { }
 
   ngOnInit(): void {
@@ -16,6 +17,6 @@ export class SingleMachineViewExtendComponent { //multiple dates selecting imple
   }
   fetchData():void{
     this._machineData = this._singleMechineData.getMechineData();
-    console.log(this._machineData);
+    this.legends.isUnloading = false;
   }
 }

@@ -31,5 +31,9 @@ export class SingleMachineViewComponent { //single date selecting implementation
     this._machineData = this._singleMechineData.getMechineData();
     console.log(this._machineData);
     this.showClusterControl = false;
+    this.legends.isLifting = true;
+    this.legends.isNoLifting = true;
+    this.legends.isRoad = true;
+    this.legends.isUnloading = true;
   }
 }
