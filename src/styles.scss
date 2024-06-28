@@ -147,23 +147,6 @@ style attribute {
     box-shadow: 0 1px 2px rgba(0,0,0,0.65);
 }
 
-
-.leaflet-control-layers-base{
-    display: flex;
-    justify-content: center;
-    padding: 0px;
-  }
-  
-  .leaflet-control-layers-base > label{
-    margin-left: 5px;
-  }
-
-  .leaflet-control-layers-base label:first-child{
-    border-right: 1px solid #eee;
-    padding-right: 5px;
-    box-sizing: border-box;
-  }
-
   .leaflet-control-layers{
     border-radius: 3px;
   }
@@ -172,9 +155,6 @@ style attribute {
     background-color: #eee;
   }
 
-  .leaflet-control-layers-base label:hover input[type="radio"]{
-    display: inline-block;
-  }
 
   .dropdown{
     position: relative;
@@ -196,12 +176,6 @@ style attribute {
     display: block;
   }
 
-  .leaflet-control-layers-base button{
-    background: none;
-    margin-left: 5px;
-    border: none;
-    padding: 5px;
-  }
 
   .leaflet-control-layers-expanded{
     padding: 0;
@@ -362,3 +336,16 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .hidden {
   display: none !important;
 }
+
+//++++++++++++
+
+.leaflet-control-layers-base {
+  display: flex;
+  gap: 10px; 
+  padding: 5px; 
+}
+
+.leaflet-control-layers-selector {
+  margin-right: 5px; 
+}
+

@@ -8,16 +8,16 @@
     </div>
     <div class="dateRangePicker">
         <div style="float: right;width: 100%;">
-            <ejs-daterangepicker (change)="onDateSelected($event)"></ejs-daterangepicker>
+            <ejs-daterangepicker (change)="onDateSelected($event)" [min]="minDate" [max]="maxDate"></ejs-daterangepicker>
         </div>
     </div>
 </div>
 <div class="mapContainer">
     <div class="mapstyle">
-        <div class="machineContent">
+        <!--<div class="machineContent">
                 <h2 class="singleMapHeading">MAP</h2>
                 <h2 class="lastDatePosition">last know position since 4/24/2024, 6:29:57 PM</h2>
-         </div>
+         </div>-->
         <div id="leafletMap"></div>
             <div class="map-info">
                 <ul class="component ng-star-inserted">

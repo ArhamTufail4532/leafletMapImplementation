@@ -29,7 +29,6 @@ export class SingleMachineViewComponent { //single date selecting implementation
   }
   fetchData():void{
     this._machineData = this._singleMechineData.getMechineData();
-    console.log(this._machineData);
     this.showClusterControl = false;
     this.legends.isLifting = true;
     this.legends.isNoLifting = true;

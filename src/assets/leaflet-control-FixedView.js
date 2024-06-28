@@ -34,10 +34,9 @@ L.Control.fixedView = L.Control.extend({
             }
         });
 
-        map.on('dragstart', function() {
+         map.on('dragstart', function() {
             if (isFixed) {
-                // If the view is fixed, restore the fixed view
-                map.setView(fixedCenter, fixedZoom);
+                map.setView(fixedCenter);
             }
             link.classList.remove('active');
         });
@@ -45,10 +44,10 @@ L.Control.fixedView = L.Control.extend({
         map.on('zoomend', function() {
             if (isFixed) {
                 // If the view is fixed, restore the fixed view
-                map.setView(fixedCenter, fixedZoom);
+                map.setView(fixedCenter);
             }
             link.classList.remove('active');
-        });
+        }); 
 
         return container;
     },

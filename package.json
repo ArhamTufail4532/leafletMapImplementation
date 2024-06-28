@@ -24,6 +24,7 @@
     "@syncfusion/ej2-material-theme": "~25.2.7",
     "leaflet": "^1.9.4",
     "leaflet-gesture-handling": "^1.2.2",
+    "leaflet-groupedlayercontrol": "^0.6.1",
     "leaflet.fullscreen": "^3.0.2",
     "leaflet.gridlayer.googlemutant": "^0.14.1",
     "leaflet.locatecontrol": "^0.81.1",

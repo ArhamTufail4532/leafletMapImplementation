@@ -10,13 +10,13 @@ export class MachineDataService {
 
   constructor() { }
 
-  getSingleMechineWithMultipleDates(){
+  getSingleMechineWithSingleDate(){
     return SingleMechineDatawithMultipleDates;
   }
   getAllMechineForClusters(){
     return MultipleMachineData;
   }
-  getMultipleMachineWithMultipleDates(){
+  getSingleMachineWithMultipleDates(){
     return MultipleMachineWithMultipleDates;
   }
 }

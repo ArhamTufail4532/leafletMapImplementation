@@ -1,9 +1,10 @@
 import { Component, OnInit, AfterViewInit, Attribute, HostListener, Input } from '@angular/core';
 import * as L from 'leaflet';
-import { MapData } from '../interfaces/MapData';
+import 'leaflet-groupedlayercontrol';
 import { MechineDataServiceService } from '../mechine-data-service.service';
 import { MultipleMachineDataService } from '../multiple-machine-data.service';
 import { MultipleMechineLinePathService } from '../multiple-mechine-line-path.service';
+import { MachineDataService } from '../machine-data.service';
 import "leaflet.gridlayer.googlemutant";
 import "leaflet.fullscreen";
 import { RangeEventArgs } from '@syncfusion/ej2-angular-calendars';
@@ -15,13 +16,22 @@ import { __metadata } from 'tslib';
 import "src/assets/leaflet-control-markers.js";
 import { Coordinate } from '../interfaces/Coordinate';
 import { Lagends } from '../Models/Lagends.model';
-import { inputs } from '@syncfusion/ej2-angular-calendars/src/calendar/calendar.component';
 
 interface MachineData {
     machineCalculations: {
         time: string;
     }
   }
+
+  var date = [
+    {
+      "startDate":"2023-11-10",
+      "endDate":"2023-11-10" 
+    },{
+      "startDate":"2023-10-19",
+      "endDate":"2023-10-19"
+    }
+  ]
 
   interface Path {
     coordinates: Coordinate[];
@@ -53,7 +63,12 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
   @Input() extendControl: boolean = true;
   @Input() dateRangePickerValue: boolean = true;
   @Input() legends: Lagends = new Lagends();
-
+    public today: Date = new Date();
+    public currentYear: number = this.today.getFullYear();
+    public currentMonth: number = this.today.getMonth();
+    public currentDay: number = this.today.getDate();
+    public minDate: Object = {};
+    public maxDate: Object =  {};
     private polylines: L.Polyline[] = [];
     private customMarkers : L.Marker[] = [];
     public _machineData : any;
@@ -62,20 +77,29 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     _lng : number = 10.562562667;
     _machineName : string = "";
     _polyline : any;
+    public _multipleDatesData : any;
     homeControl : any;
     jsonData : any;
+    machineobject: any;
     _ZoomControl : any;
     public selectedDate :any;
     private polylinesLayer: any;
     private polygonsLayer: any;
-    private map: L.Map = {} as L.Map; // Initialize as an empty object
+    private map: L.Map = {} as L.Map;
+    public dateValue: Date = new Date(); // Initialize as an empty object
  
 
-constructor(private _singleMechineData: MechineDataServiceService, private _multipleMechineData:MultipleMachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService) { 
+constructor(private _singleMechineData: MachineDataService, private _multipleMechineData:MultipleMachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService) { 
   
 }
 
   ngOnInit(): void {
+    for(var i=0;i<date.length;i++){
+      this.minDate = date[i].startDate;
+      this.maxDate = date[i].endDate;
+    }
+    console.log("minDate"+this.minDate);
+    console.log("maxDate"+this.maxDate);
     this.fetchData();
     if(this.map){
       this.map.off();
@@ -84,10 +108,19 @@ constructor(private _singleMechineData: MechineDataServiceService, private _mult
     }
   }
 fetchData():void{
-    this._machineData = this._singleMechineData.getMechineData();
+    this._machineData = this._singleMechineData.getSingleMechineWithSingleDate();
+    this._multipleDatesData = this._singleMechineData.getSingleMachineWithMultipleDates();
 }
   ngAfterViewInit(): void {
     this.initMap();
+
+    setTimeout(() => {
+      const radios = document.querySelectorAll('.leaflet-control-layers-selector');
+      radios.forEach(radio => {
+        (radio as any).type = 'checkbox';
+      });
+    }, 0);
+
     if(this.showClusterControl)
     {
         this.loadMarker();
@@ -149,11 +182,18 @@ fetchData():void{
 
 
   onDateSelected(args: RangeEventArgs): void  {
-    let date = args.startDate;
-    const year = date?.getFullYear();
-    const month = (date ? (date.getMonth() + 1).toString().padStart(2, '0') : '');
-    const day = date?.getDate().toString().padStart(2, '0');
-    const selectedDate = `${year}-${month}-${day}`
+
+    let startDate = args.startDate;
+    let endDate = args.endDate;
+    const startYear = startDate?.getFullYear();
+    const startMonth = (startDate ? (startDate.getMonth() + 1).toString().padStart(2, '0') : '');
+    const startDay = startDate?.getDate().toString().padStart(2, '0');
+    const selectedDateForStart = `${startYear}-${startMonth}-${startDay}`;
+    
+    const endYear = endDate?.getFullYear();
+    const endMonth = (endDate ? (endDate.getMonth() + 1).toString().padStart(2, '0') : '');
+    const endDay = endDate?.getDate().toString().padStart(2, '0');
+    const selectedDateForEnd = `${endYear}-${endMonth}-${endDay}`; 
     // const selectedDateString = this.selectedDate.toISOString().split('T')[0];
     this.polylines.forEach(polyline => this.map.removeLayer(polyline));
     this.polylines = [];
@@ -165,11 +205,11 @@ fetchData():void{
     this.customMarkers = [];
     for(var i=0 ;i<=this._machineData.length;i++)
     {
+      let date = new Date(this._machineData[i]?.machineCalculations?.time);
         if (this._machineData[i]?.machineCalculations?.time) {
             const machineDataDateString = this._machineData[i].machineCalculations.time.toString().split('T')[0];
-            console.log(machineDataDateString);
-            console.log(selectedDate);
-            if (selectedDate == machineDataDateString) {
+            console.log("backend date" + machineDataDateString);
+            if (selectedDateForStart == machineDataDateString) {
                 console.log('Match found at index:', i);
                 this.loadMap(i);
                 break;
@@ -289,6 +329,8 @@ fetchData():void{
       const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
       .addTo(this.map);
       this.customMarkers.push(customMarker);
+
+
       const label = L.divIcon({
         className: 'label-icon',
         html: `<div>${marker.markerLabel}</div>`,
@@ -367,11 +409,12 @@ private togglePaths(pathType: string) {
   }
 }
 
-private togglePolylines(color: string) {
+private togglePolylines(color: string) {  
   // Toggle visibility of polylines based on color
   console.log(color);
   this.polylines.forEach(polyline => {
       const options = polyline.options as L.PolylineOptions;
+      console.log(options.color);
       if (options.color === color) {
         console.log("match found!");
           if (this.map.hasLayer(polyline)) {
@@ -379,6 +422,8 @@ private togglePolylines(color: string) {
           } else {
               this.map.addLayer(polyline);
           }
+      }else{
+        console.log("not match found!");
       }
   });
 }
@@ -403,6 +448,12 @@ private toggleLegend(selector: string) {
         attributionControl:false,
         maxZoom: 18
     }).setView([this._lat, this._lng], 4);
+
+    this.homeControl = (L.control as any).defaultExtent({
+      title:"automatic zoom",
+      position:"topright"
+    }).setCenter([this._lat,this._lng])
+    .addTo(this.map);
 
     this.polylinesLayer = L.layerGroup().addTo(this.map);
     this.polygonsLayer = L.layerGroup().addTo(this.map);
@@ -459,11 +510,6 @@ private toggleLegend(selector: string) {
       }
     (L.control as any).fixedView({ position: 'topright' }).addTo(this.map);
     //automatic zoom 
-    this.homeControl = (L.control as any).defaultExtent({
-        title:"automatic zoom",
-        position:"topright"
-    }).setCenter([this._lat,this._lng])
-  .addTo(this.map);
 
   if(this.showClusterControl==true)
     {
@@ -472,8 +518,8 @@ private toggleLegend(selector: string) {
   
 
         const baseLayers = {
-            "satellite":googlehybrid,
             "terrian": terrainMutant,
+            "satellite":googlehybrid
         };
 
     // scale on map implementation
@@ -483,10 +529,20 @@ private toggleLegend(selector: string) {
         updateWhenIdle:true
     }).addTo(this.map);
 
-    //single Marker on map Implementaion
+    const groupedOverlays = {};
 
-    //popup for mechine data 
-    
+    const options = {
+      exclusiveGroups: [],
+      groupCheckboxes: true,
+      collapsed : false,
+      position : "topleft"
+    };
+
+    var overlays = {
+        
+    };
+
+    (L.control as any).groupedLayers(baseLayers, groupedOverlays, options).addTo(this.map);
 
     this.map.on('enterFullscreen', function(){
         if(window.console) window.console.log('enterFullscreen');
@@ -495,16 +551,12 @@ private toggleLegend(selector: string) {
         if(window.console) window.console.log('exitFullscreen');
     });
     
-    var overlays = {
-        
-    };
-
     // other leaflet map controller
-    var layerControl = L.control.layers(baseLayers, overlays,{
+    /* var layerControl = L.control.layers(baseLayers, overlays,{
         collapsed : false,
         autoZIndex: true,
         position:'topleft'
-    }).addTo(this.map); 
+    }).addTo(this.map);  */
 
     if(this.legends.isLifting)
     {
@@ -586,6 +638,7 @@ private toggleLegend(selector: string) {
         this.map.invalidateSize();
       }, 200); 
     }
+
   }else{
   }
   const extendButton = document.querySelector(".icon-fullscreen");
@@ -598,7 +651,37 @@ private toggleLegend(selector: string) {
           this.map.invalidateSize();
         }, 200); 
       }
-  });
+  }); 
+
+
+  if(this.legends.isUnloading!=true){
+    let allPolylineCoordinates: [number, number][] = [];
+    this._multipleDatesData[0].mapData.roadTripLinePath.forEach((line:Line) =>{
+      const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+      const polyline = (L.polyline as any)(coordinates as any,{
+          color:"#7acdef" 
+      }).addTo(this.map);
+      this.polylines.push(polyline);
+      allPolylineCoordinates.push(coordinates as any);
+    });
+    this._multipleDatesData[0].mapData.notHarvestingLinePath.forEach((line:Line) =>{
+      const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+      const polyline = (L.polyline as any)(coordinates as any,{
+          color:"#E37056" 
+      }).addTo(this.map);
+      this.polylines.push(polyline);
+      allPolylineCoordinates.push(coordinates as any);
+    });
+    this._multipleDatesData[0].mapData.harvestingPolygonPath.forEach((line:Line) =>{
+      const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+      const polygon = (L.polygon as any)(coordinates as any,{
+          color:"#ffd800" 
+      }).addTo(this.map);
+      this.polylines.push(polygon);
+      allPolylineCoordinates.push(coordinates as any);
+    });
+}
+  
 }
 
   private addPolyline(coordinates: any[], color: string): void {

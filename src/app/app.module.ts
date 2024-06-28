@@ -3,6 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { DateRangePickerModule, CalendarModule, DatePickerModule, TimePickerModule, DateTimePickerModule } from '@syncfusion/ej2-angular-calendars';
 import { AppRoutingModule } from './app-routing.module';
 import {MatButtonModule} from '@angular/material/button';
+import { FormsModule } from '@angular/forms';
 import { AppComponent } from './app.component';
 import { LeafletMapComponent } from './leaflet-map/leaflet-map.component';
 import { SingleMachineViewComponent } from './single-machine-view/single-machine-view.component';
@@ -24,7 +25,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
     BrowserModule,
     AppRoutingModule,
     DateRangePickerModule,
-    CalendarModule, DatePickerModule, TimePickerModule, DateTimePickerModule, BrowserAnimationsModule,MatButtonModule
+    CalendarModule, DatePickerModule, TimePickerModule, DateTimePickerModule, BrowserAnimationsModule,MatButtonModule,FormsModule
   ],
   providers: [],
   bootstrap: [AppComponent]
