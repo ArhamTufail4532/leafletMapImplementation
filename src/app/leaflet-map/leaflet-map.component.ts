@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, Attribute, HostListener, Input } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Attribute, HostListener, Input, ViewChild } from '@angular/core';
 import * as L from 'leaflet';
 import 'leaflet-groupedlayercontrol';
 import { MechineDataServiceService } from '../mechine-data-service.service';
@@ -16,6 +16,8 @@ import { __metadata } from 'tslib';
 import "src/assets/leaflet-control-markers.js";
 import { Coordinate } from '../interfaces/Coordinate';
 import { Lagends } from '../Models/Lagends.model';
+import { ViewContainerRef } from '@angular/core';
+import {Router} from "@angular/router"
 
 interface MachineData {
     machineCalculations: {
@@ -25,10 +27,7 @@ interface MachineData {
 
   var date = [
     {
-      "startDate":"2023-11-10",
-      "endDate":"2023-11-10" 
-    },{
-      "startDate":"2023-10-19",
+      "startDate":"2023-10-10",
       "endDate":"2023-10-19"
     }
   ]
@@ -63,6 +62,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
   @Input() extendControl: boolean = true;
   @Input() dateRangePickerValue: boolean = true;
   @Input() legends: Lagends = new Lagends();
+  @Input() ExtendViewData : boolean = false;
     public today: Date = new Date();
     public currentYear: number = this.today.getFullYear();
     public currentMonth: number = this.today.getMonth();
@@ -89,8 +89,14 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     public dateValue: Date = new Date(); // Initialize as an empty object
  
 
-constructor(private _singleMechineData: MachineDataService, private _multipleMechineData:MultipleMachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService) { 
+constructor(private _singleMechineData: MachineDataService, private _multipleMechineData:MultipleMachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService,private router:Router) { 
   
+}
+
+goToPage(pageName:string):void{
+  console.log("page changes successfully!");
+  console.log("your page name is"+pageName);
+  this.router.navigate([`${pageName}`]);
 }
 
   ngOnInit(): void {
@@ -113,13 +119,6 @@ fetchData():void{
 }
   ngAfterViewInit(): void {
     this.initMap();
-
-    setTimeout(() => {
-      const radios = document.querySelectorAll('.leaflet-control-layers-selector');
-      radios.forEach(radio => {
-        (radio as any).type = 'checkbox';
-      });
-    }, 0);
 
     if(this.showClusterControl)
     {
@@ -317,12 +316,11 @@ fetchData():void{
       });
     }); */
 
-    const customIcon = L.divIcon({
-      className: 'custom-div-icon',
-      html: `<img alt="" src="./assets/red-flag.png" draggable="false" style="width: 66px; height: 62px; user-select: none; border: 0px; padding: 0px; margin: 0px; max-width: none;">`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
-    });
+    const customIcon = L.icon({
+      iconUrl: './assets/red-flag.png',
+      iconSize: [64, 64], // Size of your icon
+      iconAnchor: [10, 64] // Adjusted to move the icon up by 64 pixels
+  });
 
 
     const data = this._machineData[i].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
@@ -334,8 +332,9 @@ fetchData():void{
       const label = L.divIcon({
         className: 'label-icon',
         html: `<div>${marker.markerLabel}</div>`,
-        iconSize: [30, 0]
-      });
+        iconSize: [64, 64], // Adjusted iconSize if needed
+        iconAnchor: [12, 50] // Example adjustment for label position
+    });
 
       const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
         .addTo(this.map);
@@ -449,11 +448,76 @@ private toggleLegend(selector: string) {
         maxZoom: 18
     }).setView([this._lat, this._lng], 4);
 
-    this.homeControl = (L.control as any).defaultExtent({
-      title:"automatic zoom",
-      position:"topright"
-    }).setCenter([this._lat,this._lng])
-    .addTo(this.map);
+    if(this.legends.isUnloading==false && this.showClusterControl==false){
+
+      let allPolylineCoordinates: [number, number][] = [];
+
+      this._multipleDatesData[0].mapData.roadTripLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        const polyline = (L.polyline as any)(coordinates as any,{
+            color:"#7acdef" 
+        }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+      });
+      this._multipleDatesData[0].mapData.notHarvestingLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        const polyline = (L.polyline as any)(coordinates as any,{
+            color:"#E37056" 
+        }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+      });
+
+      this._multipleDatesData[0].mapData.harvestingPolygonPath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        const polygon = (L.polygon as any)(coordinates as any,{
+            color:"#ffd800" 
+        }).addTo(this.map);
+        this.polylines.push(polygon);
+        allPolylineCoordinates.push(coordinates as any);
+      });
+
+      const customIcon = L.icon({
+        iconUrl: './assets/red-flag.png',
+        iconSize: [64, 64], // Size of your icon
+        iconAnchor: [10, 64] // Adjusted to move the icon up by 64 pixels
+    });
+      const data = this._multipleDatesData[0].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
+        const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
+        .addTo(this.map);
+        this.customMarkers.push(customMarker);
+  
+        const label = L.divIcon({
+          className: 'label-icon',
+          html: `<div>${marker.markerLabel}</div>`,
+          iconSize: [64, 64], // Adjusted iconSize if needed
+          iconAnchor: [12, 50] // Example adjustment for label position
+      });
+  
+        const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+          .addTo(this.map);
+   
+          this.customMarkers.push(labelMarker);
+      });
+
+      if (allPolylineCoordinates.length > 0) {
+        const bounds = L.latLngBounds(allPolylineCoordinates);
+        this.map.fitBounds(bounds);
+
+        // Optionally adjust the center and zoom level
+        const center = bounds.getCenter();
+        const zoomLevel = this.map.getBoundsZoom(bounds);
+
+        // Set the view with a slight delay to ensure the map has finished adjusting from fitBounds
+        setTimeout(() => {
+            this.map.setView(center, zoomLevel);
+            this.homeControl.setCenter(center);
+            this.homeControl.setZoom(zoomLevel);
+        }, 200);    
+    }
+    
+  }  
 
     this.polylinesLayer = L.layerGroup().addTo(this.map);
     this.polygonsLayer = L.layerGroup().addTo(this.map);
@@ -464,14 +528,14 @@ private toggleLegend(selector: string) {
         });
     }
 
-    L.popup({
+     L.popup({
         offset:[1,6],
         keepInView:false,
         autoClose:false
     })
     .setLatLng([this._lat, this._lng])
     .setContent(popupData(this._machineName[0]))
-    .openOn(this.map); 
+    .openOn(this.map);  
 
     this._ZoomControl = L.control.zoom({
         position:"bottomright",
@@ -510,6 +574,12 @@ private toggleLegend(selector: string) {
       }
     (L.control as any).fixedView({ position: 'topright' }).addTo(this.map);
     //automatic zoom 
+
+    this.homeControl = (L.control as any).defaultExtent({
+      title:"automatic zoom",
+      position:"topright"
+    }).setCenter([this._lat,this._lng])
+    .addTo(this.map);
 
   if(this.showClusterControl==true)
     {
@@ -641,46 +711,21 @@ private toggleLegend(selector: string) {
 
   }else{
   }
-  const extendButton = document.querySelector(".icon-fullscreen");
+/*   const extendButton = document.querySelector(".icon-fullscreen");
   const mapstyle = document.querySelector(".mapstyle");
   extendButton?.addEventListener("click",()=>{
-      (mapstyle as any).style.width = 100+"%";
-      (extendButton as any).style.display = "none";
+      //(mapstyle as any).style.width = 100+"%";
+      //(extendButton as any).style.display = "none";
+      
       if (this.map) { 
         setTimeout(() => {
           this.map.invalidateSize();
         }, 200); 
       }
-  }); 
+  });  */
 
 
-  if(this.legends.isUnloading!=true){
-    let allPolylineCoordinates: [number, number][] = [];
-    this._multipleDatesData[0].mapData.roadTripLinePath.forEach((line:Line) =>{
-      const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-      const polyline = (L.polyline as any)(coordinates as any,{
-          color:"#7acdef" 
-      }).addTo(this.map);
-      this.polylines.push(polyline);
-      allPolylineCoordinates.push(coordinates as any);
-    });
-    this._multipleDatesData[0].mapData.notHarvestingLinePath.forEach((line:Line) =>{
-      const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-      const polyline = (L.polyline as any)(coordinates as any,{
-          color:"#E37056" 
-      }).addTo(this.map);
-      this.polylines.push(polyline);
-      allPolylineCoordinates.push(coordinates as any);
-    });
-    this._multipleDatesData[0].mapData.harvestingPolygonPath.forEach((line:Line) =>{
-      const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-      const polygon = (L.polygon as any)(coordinates as any,{
-          color:"#ffd800" 
-      }).addTo(this.map);
-      this.polylines.push(polygon);
-      allPolylineCoordinates.push(coordinates as any);
-    });
-}
+  
   
 }
 
@@ -703,17 +748,4 @@ function popupData(value:any): L.Content | ((source: L.Layer) => L.Content) {
     return `<div style='text-align:center;' class='machine-status-holder'> <p style='margin-bottom:2px'>${value}</p> <img src='./assets/TigerOff.png' alt='images mechine' width='70px'> <span class='status'> offline </span></div>`;
 }
 
-
-
-function getRandomLatLng(map: L.Map): L.LatLngExpression {
-    var bounds = map.getBounds();
-    var southWest = bounds.getSouthWest();
-    var northEast = bounds.getNorthEast();
-    var lngSpan = northEast.lng - southWest.lng;
-    var latSpan = northEast.lat - southWest.lat;
-    return new L.LatLng(
-      southWest.lat + (latSpan * Math.random()),
-      southWest.lng + (lngSpan * Math.random())
-    );
-}
 
