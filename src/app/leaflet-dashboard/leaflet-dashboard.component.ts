@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
 
 @Component({
   selector: 'app-leaflet-dashboard',
@@ -7,9 +8,4 @@ import { Component } from '@angular/core';
 })
 export class LeafletDashboardComponent {
 
-  view: string = 'singleMachine';
-
-  setView(view: string) {
-    this.view = view;
-  }
 }

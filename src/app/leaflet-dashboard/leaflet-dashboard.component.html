@@ -1,20 +1,24 @@
 
-
 <div style="width:100%; text-align: center; margin-top: 10px;">
-    <button mat-raised-button style="margin-right: 10px;" (click)="setView('singleMachine')" [class.active]="view === 'singleMachine'">SingleMachineView</button>
-    <button mat-raised-button style="margin-right: 10px;" (click)="setView('extendView')" [class.active]="view === 'extendView'">ExtendView</button>
-    <button mat-raised-button style="margin-right: 10px;" (click)="setView('mapView')" [class.active]="view === 'mapView'">MapView</button>
+  <a mat-raised-button routerLinkActive="active" style="margin-right: 10px;" routerLink="/singleMachineView" routerLinkActiveOption="{exact:true}">SingleMachineView</a>
+  <a mat-raised-button routerLinkActive="active" style="margin-right: 10px;" routerLink="/SingleMachineViewExtendComponent">Extend Map View</a>
+  <a mat-raised-button routerLinkActive="active" style="margin-right: 10px;" routerLink="/MapViewComponent">Map View</a>
 </div>
 
-<div *ngIf="view === 'singleMachine'">
+
+<div>
+  <router-outlet></router-outlet>
+</div>
+
+<!-- <div>
     <app-single-machine-view></app-single-machine-view>
-  </div>
-  <div *ngIf="view === 'extendView'">
+</div>
+  <div>
     <app-single-machine-view-extend></app-single-machine-view-extend>
   </div>
-  <div *ngIf="view === 'mapView'">
+  <div>
     <app-map-view></app-map-view>
-  </div>
+  </div> -->
   
 
 <!--<div>

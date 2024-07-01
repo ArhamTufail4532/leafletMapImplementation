@@ -19,4 +19,14 @@ export class MachineDataService {
   getSingleMachineWithMultipleDates(){
     return MultipleMachineWithMultipleDates;
   }
+
+  private index: number = -1;
+
+  setIndex(value: number): void {
+    this.index = value;
+  }
+
+  getIndex(): number {
+    return this.index;
+  }
 }

@@ -81,6 +81,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     homeControl : any;
     jsonData : any;
     machineobject: any;
+    index : any;
     _ZoomControl : any;
     public selectedDate :any;
     private polylinesLayer: any;
@@ -150,6 +151,8 @@ fetchData():void{
     const polygon = L.polygon(latLngs, { color: 'yellow', fillColor: 'red', weight: 2, opacity: 0.7 });
     this.polygonsLayer.addLayer(polygon);
   } */
+
+    
   
     private loadMarker(): void {
     const mapInfoWindow = this._multipleMechineData.getMultipleMechineData().mapInfoWindowDto.harvestingMapInfoWindows;
@@ -210,6 +213,7 @@ fetchData():void{
             console.log("backend date" + machineDataDateString);
             if (selectedDateForStart == machineDataDateString) {
                 console.log('Match found at index:', i);
+                this._singleMechineData.setIndex(i);
                 this.loadMap(i);
                 break;
             }else{
@@ -448,76 +452,186 @@ private toggleLegend(selector: string) {
         maxZoom: 18
     }).setView([this._lat, this._lng], 4);
 
-    if(this.legends.isUnloading==false && this.showClusterControl==false){
+    if(this._singleMechineData.getIndex()==-1)
+      {
+        if(this.legends.isUnloading==false && this.showClusterControl==false){
 
-      let allPolylineCoordinates: [number, number][] = [];
-
-      this._multipleDatesData[0].mapData.roadTripLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = (L.polyline as any)(coordinates as any,{
-            color:"#7acdef" 
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-      });
-      this._multipleDatesData[0].mapData.notHarvestingLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = (L.polyline as any)(coordinates as any,{
-            color:"#E37056" 
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-      });
-
-      this._multipleDatesData[0].mapData.harvestingPolygonPath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polygon = (L.polygon as any)(coordinates as any,{
-            color:"#ffd800" 
-        }).addTo(this.map);
-        this.polylines.push(polygon);
-        allPolylineCoordinates.push(coordinates as any);
-      });
-
-      const customIcon = L.icon({
-        iconUrl: './assets/red-flag.png',
-        iconSize: [64, 64], // Size of your icon
-        iconAnchor: [10, 64] // Adjusted to move the icon up by 64 pixels
-    });
-      const data = this._multipleDatesData[0].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
-        const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
-        .addTo(this.map);
-        this.customMarkers.push(customMarker);
-  
-        const label = L.divIcon({
-          className: 'label-icon',
-          html: `<div>${marker.markerLabel}</div>`,
-          iconSize: [64, 64], // Adjusted iconSize if needed
-          iconAnchor: [12, 50] // Example adjustment for label position
-      });
-  
-        const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
-          .addTo(this.map);
-   
-          this.customMarkers.push(labelMarker);
-      });
-
-      if (allPolylineCoordinates.length > 0) {
-        const bounds = L.latLngBounds(allPolylineCoordinates);
-        this.map.fitBounds(bounds);
-
-        // Optionally adjust the center and zoom level
-        const center = bounds.getCenter();
-        const zoomLevel = this.map.getBoundsZoom(bounds);
-
-        // Set the view with a slight delay to ensure the map has finished adjusting from fitBounds
-        setTimeout(() => {
-            this.map.setView(center, zoomLevel);
-            this.homeControl.setCenter(center);
-            this.homeControl.setZoom(zoomLevel);
-        }, 200);    
-    }
+          let allPolylineCoordinates: [number, number][] = [];
     
-  }  
+          this._multipleDatesData[0].mapData.roadTripLinePath.forEach((line:Line) =>{
+            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+            const polyline = (L.polyline as any)(coordinates as any,{
+                color:"#7acdef" 
+            }).addTo(this.map);
+            this.polylines.push(polyline);
+            allPolylineCoordinates.push(coordinates as any);
+          });
+          this._multipleDatesData[0].mapData.notHarvestingLinePath.forEach((line:Line) =>{
+            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+            const polyline = (L.polyline as any)(coordinates as any,{
+                color:"#E37056" 
+            }).addTo(this.map);
+            this.polylines.push(polyline);
+            allPolylineCoordinates.push(coordinates as any);
+          });
+    
+          this._multipleDatesData[0].mapData.harvestingPolygonPath.forEach((line:Line) =>{
+            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+            const polygon = (L.polygon as any)(coordinates as any,{
+                color:"#ffd800" 
+            }).addTo(this.map);
+            this.polylines.push(polygon);
+            allPolylineCoordinates.push(coordinates as any);
+          });
+    
+          const customIcon = L.icon({
+            iconUrl: './assets/red-flag.png',
+            iconSize: [64, 64], // Size of your icon
+            iconAnchor: [10, 64] // Adjusted to move the icon up by 64 pixels
+        });
+          const data = this._multipleDatesData[0].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
+            const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
+            .addTo(this.map);
+            this.customMarkers.push(customMarker);
+      
+            const label = L.divIcon({
+              className: 'label-icon',
+              html: `<div>${marker.markerLabel}</div>`,
+              iconSize: [64, 64], // Adjusted iconSize if needed
+              iconAnchor: [12, 50] // Example adjustment for label position
+          });
+      
+            const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+              .addTo(this.map);
+       
+              this.customMarkers.push(labelMarker);
+          });
+    
+          if (allPolylineCoordinates.length > 0) {
+            const bounds = L.latLngBounds(allPolylineCoordinates);
+            this.map.fitBounds(bounds);
+    
+            // Optionally adjust the center and zoom level
+            const center = bounds.getCenter();
+            const zoomLevel = this.map.getBoundsZoom(bounds);
+    
+            // Set the view with a slight delay to ensure the map has finished adjusting from fitBounds
+            setTimeout(() => {
+                this.map.setView(center, zoomLevel);
+                this.homeControl.setCenter(center);
+                this.homeControl.setZoom(zoomLevel);
+            }, 200);    
+        }
+        
+      }
+      }else{
+
+        if(this.showClusterControl==false){
+          let allPolylineCoordinates: [number, number][] = [];
+    
+          this._machineData[this._singleMechineData.getIndex()].mapData.roadTripLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polyline = L.polyline(coordinates as any,{
+                  color:"#7acdef" 
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+          });
+      
+          this._machineData[this._singleMechineData.getIndex()].mapData.harvestingLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polyline = L.polyline(coordinates as any,{
+                  color:"#ffd800"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+          });
+      
+          this._machineData[this._singleMechineData.getIndex()].mapData.notHarvestingLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                  const polyline = L.polyline(coordinates as any,{
+                  color:"#E37056"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+          });
+      
+          this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polyline = L.polyline(coordinates as any,{
+                  color:"#84b960"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+          });
+      
+          this._machineData[this._singleMechineData.getIndex()].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polyline = L.polyline(coordinates as any,{
+                  color:"#84b960"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+          });
+      
+          this._machineData[this._singleMechineData.getIndex()].mapData.timelyGapLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polyline = L.polyline(coordinates as any,{
+                  color:"#fd7e14"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+          });
+      
+          const customIcon = L.icon({
+            iconUrl: './assets/red-flag.png',
+            iconSize: [64, 64], // Size of your icon
+            iconAnchor: [10, 64] // Adjusted to move the icon up by 64 pixels
+        });
+      
+      
+          const data = this._machineData[this._singleMechineData.getIndex()].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
+            const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
+            .addTo(this.map);
+            this.customMarkers.push(customMarker);
+      
+      
+            const label = L.divIcon({
+              className: 'label-icon',
+              html: `<div>${marker.markerLabel}</div>`,
+              iconSize: [64, 64], // Adjusted iconSize if needed
+              iconAnchor: [12, 50] // Example adjustment for label position
+          });
+      
+            const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+              .addTo(this.map);
+      
+              this.customMarkers.push(labelMarker);
+          });
+          
+          
+          if (allPolylineCoordinates.length > 0) {
+            const bounds = L.latLngBounds(allPolylineCoordinates);
+            this.map.fitBounds(bounds);
+    
+            // Optionally adjust the center and zoom level
+            const center = bounds.getCenter();
+            const zoomLevel = this.map.getBoundsZoom(bounds);
+    
+            // Set the view with a slight delay to ensure the map has finished adjusting from fitBounds
+            setTimeout(() => {
+                this.map.setView(center, zoomLevel);
+                this.homeControl.setCenter(center);
+                this.homeControl.setZoom(zoomLevel);
+            }, 200);    
+        }else{
+              console.error('No valid polyline coordinates found.');
+          }
+        }
+
+       
+      }
+      
 
     this.polylinesLayer = L.layerGroup().addTo(this.map);
     this.polygonsLayer = L.layerGroup().addTo(this.map);
@@ -710,6 +824,136 @@ private toggleLegend(selector: string) {
     }
 
   }else{
+
+    let allPolylineCoordinates: [number, number][] = [];
+    //this._lat=this._machineData[i].mapData.roadTripLinePath[0].coordinates[0].lat;
+    //this._lng=this._machineData[i].mapData.roadTripLinePath[0].coordinates[0].lng;
+    //console.log(this._lat + " " + this._lng);
+
+    /*var yellowLi = document.querySelector('.component li .yellow-box')?.parentElement as HTMLElement;
+    var redLi = document.querySelector('.component li .red-box')?.parentElement as HTMLElement;
+    var blueLi = document.querySelector('.component li .blue-box')?.parentElement as HTMLElement;
+    var greenLi = document.querySelector('.component li .green-box')?.parentElement as HTMLElement;
+
+    if (yellowLi) {
+      yellowLi.addEventListener('click', () => {
+          this.toggleLegendAndPaths('yellow');
+      });
+    }else{
+        console.log("yellow li not found!");
+    }
+  if (redLi) {
+      redLi.addEventListener('click', () => {
+          this.toggleLegendAndPaths('red');
+      });
+  }
+  if (blueLi) {
+      blueLi.addEventListener('click', () => {
+          this.toggleLegendAndPaths('blue');
+      });
+  }
+  if (greenLi) {
+      greenLi.addEventListener('click', () => {
+          this.toggleLegendAndPaths('green');
+      });
+  }*/
+
+    this._machineData[this._singleMechineData.getIndex()].mapData.roadTripLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        const polyline = L.polyline(coordinates as any,{
+            color:"#7acdef" 
+        }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+    });
+
+    this._machineData[this._singleMechineData.getIndex()].mapData.harvestingLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        const polyline = L.polyline(coordinates as any,{
+            color:"#ffd800"
+        }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+    });
+
+    this._machineData[this._singleMechineData.getIndex()].mapData.notHarvestingLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+            const polyline = L.polyline(coordinates as any,{
+            color:"#E37056"
+        }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+    });
+
+    this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        const polyline = L.polyline(coordinates as any,{
+            color:"#84b960"
+        }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+    });
+
+    this._machineData[this._singleMechineData.getIndex()].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        const polyline = L.polyline(coordinates as any,{
+            color:"#84b960"
+        }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+    });
+
+    this._machineData[this._singleMechineData.getIndex()].mapData.timelyGapLinePath.forEach((line:Line) =>{
+        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+        const polyline = L.polyline(coordinates as any,{
+            color:"#fd7e14"
+        }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+    });
+
+    const customIcon = L.icon({
+      iconUrl: './assets/red-flag.png',
+      iconSize: [64, 64], // Size of your icon
+      iconAnchor: [10, 64] // Adjusted to move the icon up by 64 pixels
+  });
+
+
+    const data = this._machineData[this._singleMechineData.getIndex()].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
+      const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
+      .addTo(this.map);
+      this.customMarkers.push(customMarker);
+
+
+      const label = L.divIcon({
+        className: 'label-icon',
+        html: `<div>${marker.markerLabel}</div>`,
+        iconSize: [64, 64], // Adjusted iconSize if needed
+        iconAnchor: [12, 50] // Example adjustment for label position
+    });
+
+      const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+        .addTo(this.map);
+
+        this.customMarkers.push(labelMarker);
+    });
+    
+    
+    if (allPolylineCoordinates.length > 0) {
+        const bounds = L.latLngBounds(allPolylineCoordinates);
+        this.map.fitBounds(bounds);
+        const center = bounds.getCenter();
+        if (isNaN(center.lat) || isNaN(center.lng)) {
+            console.error('Invalid center coordinates:', center.lat, center.lng);
+            return;
+        }
+        const zoom = this.map.getBoundsZoom(bounds);
+        this.homeControl.setCenter(center);
+        console.log('Calculated Zoom Level:', zoom);
+        this.homeControl.setZoom(zoom);
+    }else{
+        console.error('No valid polyline coordinates found.');
+    }
   }
 /*   const extendButton = document.querySelector(".icon-fullscreen");
   const mapstyle = document.querySelector(".mapstyle");
