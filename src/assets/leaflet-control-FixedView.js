@@ -8,14 +8,13 @@ L.Control.fixedView = L.Control.extend({
         link.href = '#';
         link.title = 'Fixed View Window';
 
-        // Variables to store the fixed view state
         var isFixed = false;
         var fixedCenter = null;
         var fixedZoom = null;
 
         L.DomEvent.on(link, 'click', function(e) {
             L.DomEvent.stopPropagation(e); 
-            L.DomEvent.preventDefault(e);  // Prevent default link behavior
+            L.DomEvent.preventDefault(e); 
 
             if (isFixed) {
                 // Unfix the view
@@ -31,31 +30,53 @@ L.Control.fixedView = L.Control.extend({
                 link.classList.add('active');
                 link.classList.add('fixed-inactive');
                 console.log("fixed on");
+
+                var event = new CustomEvent('controlActivated', { detail: 'fixedView' });
+                document.dispatchEvent(event);
             }
         });
 
          map.on('dragstart', function() {
             if (isFixed) {
                 map.setView(fixedCenter);
+                isFixed = false;
+                link.classList.remove('fixed-inactive');
+                link.classList.remove('active');
             }
-            link.classList.remove('active');
         });
 
         map.on('zoomend', function() {
             if (isFixed) {
-                // If the view is fixed, restore the fixed view
                 map.setView(fixedCenter);
-            }
-            link.classList.remove('active');
+                isFixed = false;
+                link.classList.remove('fixed-inactive');
+                link.classList.remove('active');
+            }     
         }); 
+
+        document.addEventListener('controlActivated', function (e) {
+            if (isFixed && e.detail !== 'fixedView') {
+                console.log("Control activated - fixed view deactivated");
+                isFixed = false;
+                link.classList.remove('fixed-inactive');
+                link.classList.remove('active');
+            }
+        });
 
         return container;
     },
 
     onRemove: function(map) {
-        // Clean up events when the control is removed
         map.off('dragstart');
         map.off('zoomend');
+
+        document.removeEventListener('controlActivated', function (e) {
+            if (isFixed && e.detail !== 'fixedView') {
+                isFixed = false;
+                link.classList.remove('fixed-inactive');
+                link.classList.remove('active');
+            }
+        });
     }
 });
 

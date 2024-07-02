@@ -29,6 +29,8 @@
         L.DomEvent.disableClickPropagation(container);
   
         this._map.whenReady(this._whenReady, this);
+
+        document.addEventListener('controlActivated', this._deactivate.bind(this));
   
         return this._container;
       },
@@ -56,6 +58,15 @@
       },
       _zoomToDefault: function () {
         this._map.setView(this._center, this._zoom);
+        var event = new CustomEvent('controlActivated', { detail: 'defaultExtent' });
+            document.dispatchEvent(event);
+      },
+        _deactivate: function (e) {
+          if (e.detail !== 'defaultExtent') {
+              // Add code to deactivate this control if necessary
+              // For now, just log it to the console
+              console.log("DefaultExtent control deactivated");
+          }
       }
     });
   
