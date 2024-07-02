@@ -155,18 +155,64 @@ fetchData():void{
     
   
     private loadMarker(): void {
-    const mapInfoWindow = this._multipleMechineData.getMultipleMechineData().mapInfoWindowDto.harvestingMapInfoWindows;
+      const mapInfoWindow = this._singleMechineData.getAllMechineForClusters().mapInfoWindows.harvestingMapInfoWindows;
+      mapInfoWindow.forEach(infoWindow => {
+          const{ lat , lng } = infoWindow.mapInfoWindowCoordinate;
+          var date = infoWindow.lastPositionTimeStamp.split('T')[0];
+          var tooltip = L.tooltip({
+            direction:'top',
+            permanent:true,
+            offset:[-12,10],
+            className: 'custom-tooltip'
+          })
+        .setLatLng([lat, lng])
+        .setContent(popupData(infoWindow.infoWindowContent));
+  
+          var marker = L.marker([lat, lng],{
+              opacity:0
+          });
+          marker.bindTooltip(tooltip);
+  
+          marker.openTooltip();
+          this._markers.addLayer(marker);
+      });
+  
+      this._markers.openTooltip();
+          this.map.addLayer(this._markers);
+          this._markers.on('clustermouseover',function(e: any){
+            var clusterTooltip = L.tooltip({
+              direction: 'top',
+              offset: [0, 0],
+              className: 'custom-cluster-tooltip'
+          }).setContent('');
+  
+          const cluster = e.layer;
+          const childMarkers = cluster.getAllChildMarkers();
+  
+          // Customize the content of the tooltip based on child markers
+          let tooltipContent = '<div>';
+          childMarkers.forEach((marker: { getTooltip: () => { (): any; new(): any; getContent: { (): any; new(): any; }; }; }) => {
+            var content = marker.getTooltip().getContent();
+            const parser = new DOMParser();
+              const doc = parser.parseFromString(content, 'text/html') as any;
+              const machineName = doc.querySelector('p').textContent;
+              tooltipContent += `<p>${machineName}</p>`;
+          });
+          tooltipContent += '</div>';
+  
+          clusterTooltip.setLatLng(e.latlng).setContent(tooltipContent);
+          cluster.bindTooltip(clusterTooltip).openTooltip();
+          });
+          
+          this._markers.on('click',function(e:any){
+            alert("marks click");
+          });
+          
+    }
+  
 
-    mapInfoWindow.forEach(infoWindow => {
-        const{ lat , lng } = infoWindow.mapInfoWindowCoordinate;
-        var marker = L.marker([lat, lng],{ opacity: 0, zIndexOffset: -1000 });
-        this._markers.addLayer(marker);
-    });
-        this.map.addLayer(this._markers);
-  }
-
-  private fitMapToBounds(): void {
-    const mapInfoWindows = this._multipleMechineData.getMultipleMechineData().mapInfoWindowDto.harvestingMapInfoWindows;
+    private fitMapToBounds(): void {
+    const mapInfoWindows = this._singleMechineData.getAllMechineForClusters().mapInfoWindows.harvestingMapInfoWindows;
     const latLngs: L.LatLngExpression[] = mapInfoWindows.map(infoWindow => {
       return [infoWindow.mapInfoWindowCoordinate.lat, infoWindow.mapInfoWindowCoordinate.lng];
     });
@@ -181,6 +227,7 @@ fetchData():void{
         this.homeControl.setZoom(zoom);
     }
   }
+
 
 
   onDateSelected(args: RangeEventArgs): void  {

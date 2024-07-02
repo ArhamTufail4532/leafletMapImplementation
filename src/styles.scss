@@ -220,46 +220,46 @@ style attribute {
   }
 
   .marker-cluster-small {
-    background-color: rgba(181, 226, 140, 0.6);
+    background: url('./assets/m2.png');
     }
   .marker-cluster-small div {
-    background-color: rgba(110, 204, 57, 0.6);
+    background: url('./assets/m2.png');
     }
   
   .marker-cluster-medium {
-    background-color: rgba(241, 211, 87, 0.6);
+    background: url('./assets/m2.png');
     }
   .marker-cluster-medium div {
-    background-color: rgba(240, 194, 12, 0.6);
+    background: url('./assets/m2.png');
     }
   
   .marker-cluster-large {
-    background-color: rgba(253, 156, 115, 0.6);
+    background: url('./assets/m2.png');
     }
   .marker-cluster-large div {
-    background-color: rgba(241, 128, 23, 0.6);
+    background: url('./assets/m2.png');
     }
   
     /* IE 6-8 fallback colors */
   .leaflet-oldie .marker-cluster-small {
-    background-color: rgb(181, 226, 140);
+    background: url('./assets/m2.png');
     }
   .leaflet-oldie .marker-cluster-small div {
-    background-color: rgb(110, 204, 57);
+    background: url('./assets/m2.png');
     }
   
   .leaflet-oldie .marker-cluster-medium {
-    background-color: rgb(241, 211, 87);
+    background: url('./assets/m2.png');
     }
   .leaflet-oldie .marker-cluster-medium div {
-    background-color: rgb(240, 194, 12);
+    background: url('./assets/m2.png');
     }
   
   .leaflet-oldie .marker-cluster-large {
-    background-color: rgb(253, 156, 115);
+    background: url('./assets/m2.png');
     }
   .leaflet-oldie .marker-cluster-large div {
-    background-color: rgb(241, 128, 23);
+    background: url('./assets/m2.png');
   }
   
   .marker-cluster {
@@ -352,4 +352,19 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .active {
   background-color: #007bff;
   color: white;
+}
+.leaflet-tooltip{
+  border-radius: 11px;
+}
+
+.leaflet-interactive {
+  cursor: pointer;
+  fill: none;
+  width: 55px !important;
+    height: 50px !important;
+}
+
+.marker-cluster span {
+  line-height: 49px;
+  margin-left: 18px;
 }
