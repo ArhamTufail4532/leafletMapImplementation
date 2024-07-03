@@ -74,8 +74,8 @@
     "lastDateOfTotalHarvestedArea": "0001-01-01T00:00:00"
   },
   "mapCenterCoordinate": {
-    "lat": 54.151881667,
-    "lng": 9.272708333
+    "lat": 54.606856667,
+    "lng": 9.703845
   },
   "availableGeoHashes": {
     "harvestingGeohashes": [],
@@ -103,55 +103,46 @@
         "isOlderDate": false,
         "infoWindowContent": "6F1401",
         "mapInfoWindowCoordinate": {
-          "lat": 54.151881667,
-          "lng": 9.272708333
+          "lat": 54.606856667,
+          "lng": 9.703845
         },
-        "lastPositionTimeStamp": "2024-07-02T02:00:00"
+        "lastPositionTimeStamp": "2023-10-31T01:00:00"
       },
       {
         "isOlderDate": false,
         "infoWindowContent": "6F1444",
         "mapInfoWindowCoordinate": {
-          "lat": 44.867061667,
-          "lng": 82.141245
+          "lat": 44.665363333,
+          "lng": 82.662706667
         },
-        "lastPositionTimeStamp": "2024-07-02T08:00:00"
+        "lastPositionTimeStamp": "2023-10-31T08:00:00"
       },
       {
         "isOlderDate": false,
         "infoWindowContent": "6G1519",
         "mapInfoWindowCoordinate": {
-          "lat": 48.834711667,
-          "lng": 12.4764
+          "lat": 48.934161667,
+          "lng": 12.545138333
         },
-        "lastPositionTimeStamp": "2024-04-08T02:00:00"
-      },
-      {
-        "isOlderDate": false,
-        "infoWindowContent": "6G1538",
-        "mapInfoWindowCoordinate": {
-          "lat": 53.2684955,
-          "lng": 39.9982955
-        },
-        "lastPositionTimeStamp": "2024-07-01T03:00:00"
+        "lastPositionTimeStamp": "2023-10-31T01:00:00"
       },
       {
         "isOlderDate": false,
         "infoWindowContent": "6H1589",
         "mapInfoWindowCoordinate": {
-          "lat": 37.088741667,
-          "lng": -5.933523333
+          "lat": 41.504858333,
+          "lng": -5.624286667
         },
-        "lastPositionTimeStamp": "2024-07-02T02:00:00"
+        "lastPositionTimeStamp": "2023-10-31T01:00:00"
       },
       {
         "isOlderDate": false,
         "infoWindowContent": "6N2122",
         "mapInfoWindowCoordinate": {
-          "lat": 30.428181667,
-          "lng": 32.0014865
+          "lat": 30.648135667,
+          "lng": 31.930425167
         },
-        "lastPositionTimeStamp": "2024-07-02T03:00:00"
+        "lastPositionTimeStamp": "2023-10-31T02:00:00"
       }
     ],
     "notHarvestingMapInfoWindows": [],

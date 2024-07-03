@@ -1,8 +1,6 @@
 import { Component, OnInit, AfterViewInit, Attribute, HostListener, Input, ViewChild } from '@angular/core';
 import * as L from 'leaflet';
 import 'leaflet-groupedlayercontrol';
-import { MechineDataServiceService } from '../mechine-data-service.service';
-import { MultipleMachineDataService } from '../multiple-machine-data.service';
 import { MultipleMechineLinePathService } from '../multiple-mechine-line-path.service';
 import { MachineDataService } from '../machine-data.service';
 import "leaflet.gridlayer.googlemutant";
@@ -18,6 +16,7 @@ import { Coordinate } from '../interfaces/Coordinate';
 import { Lagends } from '../Models/Lagends.model';
 import { ViewContainerRef } from '@angular/core';
 import {Router} from "@angular/router"
+import { RenderDayCellEventArgs } from '@syncfusion/ej2-calendars';
 
 interface MachineData {
     machineCalculations: {
@@ -31,6 +30,8 @@ interface MachineData {
       "endDate":"2023-10-19"
     }
   ]
+
+  
 
   interface Path {
     coordinates: Coordinate[];
@@ -50,11 +51,9 @@ interface Line {
   selector: 'app-leaflet-map',
   templateUrl: './leaflet-map.component.html',
   styleUrls: ['./leaflet-map.component.scss'],
-  providers: [MechineDataServiceService]
 })
 
 export class LeafletMapComponent implements OnInit, AfterViewInit {
-
   @Input() showZoomControl: boolean = true;
   @Input() showFullscreenControl: boolean = true;
   @Input() showScaleControl: boolean = true;
@@ -87,18 +86,20 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     private polylinesLayer: any;
     private polygonsLayer: any;
     private map: L.Map = {} as L.Map;
-    public dateValue: Date = new Date(); // Initialize as an empty object
- 
+    _jsonData = {
+      enabledDates: ['2024-07-04', '2024-07-06', '2024-07-10']
+    };
+    enabledDates: Date[] = [];
+    disabledDates: string[] = [];
+    public dateValue: Date = new Date()
+    public minDates: Date = new Date('2018-07-01');
+    public maxDates: Date = new Date('2024-07-31'); // Initialize as an empty object
 
-constructor(private _singleMechineData: MachineDataService, private _multipleMechineData:MultipleMachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService,private router:Router) { 
+constructor(private _singleMechineData: MachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService,private router:Router) { 
   
 }
 
-goToPage(pageName:string):void{
-  console.log("page changes successfully!");
-  console.log("your page name is"+pageName);
-  this.router.navigate([`${pageName}`]);
-}
+
 
   ngOnInit(): void {
     for(var i=0;i<date.length;i++){
@@ -108,11 +109,25 @@ goToPage(pageName:string):void{
     console.log("minDate"+this.minDate);
     console.log("maxDate"+this.maxDate);
     this.fetchData();
+    this.initializeEnabledDates();
     if(this.map){
       this.map.off();
       this.map.remove();
       console.log("map remove");
     }
+  }
+
+  initializeEnabledDates(): void {
+    for (let i = 0; i < this._machineData.length; i++) {
+      if (this._machineData[i]?.machineCalculations?.time) {
+        const machineDataDateString = this._machineData[i].machineCalculations.time.toString().split('T')[0];
+        // Convert machineDataDateString to Date object and push to enabledDates
+        const dateParts = machineDataDateString.split('-');
+        const date = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
+        this.enabledDates.push(date);
+      }
+    }
+    console.log(this.enabledDates);
   }
 fetchData():void{
     this._machineData = this._singleMechineData.getSingleMechineWithSingleDate();
@@ -120,56 +135,59 @@ fetchData():void{
 }
   ngAfterViewInit(): void {
     this.initMap();
-
+    this.initializeEnabledDates();
     if(this.showClusterControl)
     {
         this.loadMarker();
+        this.loadMultipleMachineMapDataOnMap();
     }
-    //this.loadLineAndPolygon();
     this.fitMapToBounds();
   }
-  /*private loadLineAndPolygon(){
-    var polylinedto = this._multipleMachineLinePath.getAllMechineLinePath().machinePolylineDto.roadTripLinePath;
-    var polygondto = this._multipleMachineLinePath.getAllMechineLinePath().machinePolylineDto.harvestingPolygonPath;
-    polylinedto.forEach(path => {
-        const latLngs = path.coordinates.map(coord => L.latLng(coord.lat, coord.lng));
-        this.addPolylineToMap(latLngs);
+  private loadMultipleMachineMapDataOnMap(){
+    let allPolylineCoordinates: [number, number][] = [];
+      this._singleMechineData.getMultipleMachineMapdata().machinePolylineDto.roadTripLinePath.forEach((line)=>{
+        const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+        const polyline = L.polyline(coordinates as any,{
+          color:"#7acdef" 
+        }).addTo(this.map);
+      this.polylines.push(polyline);
+      allPolylineCoordinates.push(coordinates as any);
       });
-
-      polygondto.forEach(path => {
-        const latLngs = path.coordinates.map(coord => [coord.lat, coord.lng]);
-        this.addPolygonToMap(latLngs);
+      this._singleMechineData.getMultipleMachineMapdata().machinePolylineDto.notHarvestingLinePath.forEach((line)=>{
+        const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+        const polyline = L.polyline(coordinates as any,{
+          color:"#E37056" 
+        }).addTo(this.map);
+      this.polylines.push(polyline);
+      allPolylineCoordinates.push(coordinates as any);
       });
-  }
+       this._singleMechineData.getMultipleMachineMapdata().machinePolylineDto.harvestingPolygonPath.forEach((line)=>{
+        const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+        const polygon = (L.polygon as any)(coordinates as any,{
+          color:"#ffd800",
+          fillColor:"#ffd800",
+          fillOpacity: 1
+      }).addTo(this.map);
+      this.polylines.push(polygon);
+        allPolylineCoordinates.push(coordinates as any);
+      }); 
 
-  private addPolylineToMap(latLngs: L.LatLng[]): void {
-    const polyline = L.polyline(latLngs, { color: '#7acdef', weight: 4, opacity: 0.7 });
-    this.polylinesLayer.addLayer(polyline);
-  }
-
-  private addPolygonToMap(latLngs: any[]): void {
-    const polygon = L.polygon(latLngs, { color: 'yellow', fillColor: 'red', weight: 2, opacity: 0.7 });
-    this.polygonsLayer.addLayer(polygon);
-  } */
-
-    
+    } 
   
     private loadMarker(): void {
-      const mapInfoWindow = this._singleMechineData.getAllMechineForClusters().mapInfoWindows.harvestingMapInfoWindows;
+      const mapInfoWindow = this._singleMechineData.getMultipleMachineMapdata().mapInfoWindowDto.harvestingMapInfoWindows;
       mapInfoWindow.forEach(infoWindow => {
           const{ lat , lng } = infoWindow.mapInfoWindowCoordinate;
-          var date = infoWindow.lastPositionTimeStamp.split('T')[0];
           var tooltip = L.tooltip({
             direction:'top',
             permanent:true,
-            offset:[-12,10],
-            className: 'custom-tooltip'
+            offset:[-15,26],
           })
         .setLatLng([lat, lng])
         .setContent(popupData(infoWindow.infoWindowContent));
   
           var marker = L.marker([lat, lng],{
-              opacity:0
+            opacity:0
           });
           marker.bindTooltip(tooltip);
   
@@ -211,6 +229,18 @@ fetchData():void{
     }
   
 
+    onRenderDayCell(args: RenderDayCellEventArgs): void {
+      const date = args.date;
+      const isEnabled = this.enabledDates.some(
+        (enabledDate) =>
+          enabledDate.getDate() === date?.getDate() &&
+          enabledDate.getMonth() === date?.getMonth() &&
+          enabledDate.getFullYear() === date?.getFullYear()
+      );
+    
+      args.isDisabled = !isEnabled;
+    }
+
     private fitMapToBounds(): void {
     const mapInfoWindows = this._singleMechineData.getAllMechineForClusters().mapInfoWindows.harvestingMapInfoWindows;
     const latLngs: L.LatLngExpression[] = mapInfoWindows.map(infoWindow => {
@@ -230,45 +260,46 @@ fetchData():void{
 
 
 
-  onDateSelected(args: RangeEventArgs): void  {
+  onDateSelected(args: any): void {
+    let selectedDate = args.value;
 
-    let startDate = args.startDate;
-    let endDate = args.endDate;
-    const startYear = startDate?.getFullYear();
-    const startMonth = (startDate ? (startDate.getMonth() + 1).toString().padStart(2, '0') : '');
-    const startDay = startDate?.getDate().toString().padStart(2, '0');
-    const selectedDateForStart = `${startYear}-${startMonth}-${startDay}`;
-    
-    const endYear = endDate?.getFullYear();
-    const endMonth = (endDate ? (endDate.getMonth() + 1).toString().padStart(2, '0') : '');
-    const endDay = endDate?.getDate().toString().padStart(2, '0');
-    const selectedDateForEnd = `${endYear}-${endMonth}-${endDay}`; 
-    // const selectedDateString = this.selectedDate.toISOString().split('T')[0];
+    if (!selectedDate) {
+        console.error("No date selected");
+        return;
+    }
+
+    const selectedYear = selectedDate.getFullYear();
+    const selectedMonth = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+    const selectedDay = selectedDate.getDate().toString().padStart(2, '0');
+    const selectedDateString = `${selectedYear}-${selectedMonth}-${selectedDay}`;
+
     this.polylines.forEach(polyline => this.map.removeLayer(polyline));
     this.polylines = [];
     this.customMarkers.forEach(marker => {
-      if (this.map.hasLayer(marker)) {
-        this.map.removeLayer(marker);
-      }
+        if (this.map.hasLayer(marker)) {
+            this.map.removeLayer(marker);
+        }
     });
     this.customMarkers = [];
-    for(var i=0 ;i<=this._machineData.length;i++)
-    {
-      let date = new Date(this._machineData[i]?.machineCalculations?.time);
+    for (let i = 0; i < this._machineData.length; i++) {
+        let date = new Date(this._machineData[i]?.machineCalculations?.time);
         if (this._machineData[i]?.machineCalculations?.time) {
             const machineDataDateString = this._machineData[i].machineCalculations.time.toString().split('T')[0];
-            console.log("backend date" + machineDataDateString);
-            if (selectedDateForStart == machineDataDateString) {
+            this.enabledDates.push(machineDataDateString);
+            console.log("Backend date: " + machineDataDateString);
+            if (selectedDateString == machineDataDateString) {
                 console.log('Match found at index:', i);
                 this._singleMechineData.setIndex(i);
                 this.loadMap(i);
                 break;
-            }else{
-                console.log("match not found!");
+            } else {
+                console.log("Match not found!");
             }
         }
     }
-  }
+}
+
+
 
   private loadMap(i: number){  //i is index
     let allPolylineCoordinates: [number, number][] = [];
@@ -331,23 +362,28 @@ fetchData():void{
         allPolylineCoordinates.push(coordinates as any);
     });
 
-    this._machineData[i].mapData.dischargeLinePath.forEach((line:Line) =>{
+     this._machineData[i].mapData.dischargeLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
         const polyline = L.polyline(coordinates as any,{
-            color:"#84b960"
+            color:"#84b960",
+            weight: 7
         }).addTo(this.map);
         this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
-    });
+    }); 
 
-    this._machineData[i].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#84b960"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
+    if(this.legends.isUnloading==true)
+      {
+        this._machineData[i].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+          const polyline = L.polyline(coordinates as any,{
+              color:"#84b960"
+          }).addTo(this.map);
+          this.polylines.push(polyline);
+          allPolylineCoordinates.push(coordinates as any);
+      });
+    }
+      
 
     this._machineData[i].mapData.timelyGapLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
@@ -384,7 +420,7 @@ fetchData():void{
         className: 'label-icon',
         html: `<div>${marker.markerLabel}</div>`,
         iconSize: [64, 64], // Adjusted iconSize if needed
-        iconAnchor: [12, 50] // Example adjustment for label position
+        iconAnchor: [10, 55] // Example adjustment for label position
     });
 
       const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
@@ -496,8 +532,9 @@ private toggleLegend(selector: string) {
         gestureHandling: true,
         zoomControl: false,
         attributionControl:false,
-        maxZoom: 18
     }).setView([this._lat, this._lng], 4);
+
+    
 
     if(this._singleMechineData.getIndex()==-1)
       {
@@ -545,7 +582,7 @@ private toggleLegend(selector: string) {
               className: 'label-icon',
               html: `<div>${marker.markerLabel}</div>`,
               iconSize: [64, 64], // Adjusted iconSize if needed
-              iconAnchor: [12, 50] // Example adjustment for label position
+              iconAnchor: [10, 55] // Example adjustment for label position
           });
       
             const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
@@ -573,9 +610,10 @@ private toggleLegend(selector: string) {
       }
       }else{
 
+        
+
         if(this.showClusterControl==false){
           let allPolylineCoordinates: [number, number][] = [];
-    
           this._machineData[this._singleMechineData.getIndex()].mapData.roadTripLinePath.forEach((line:Line) =>{
               const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
               const polyline = L.polyline(coordinates as any,{
@@ -603,23 +641,32 @@ private toggleLegend(selector: string) {
               allPolylineCoordinates.push(coordinates as any);
           });
       
-          this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-              const polyline = L.polyline(coordinates as any,{
-                  color:"#84b960"
-              }).addTo(this.map);
-              this.polylines.push(polyline);
-              allPolylineCoordinates.push(coordinates as any);
+          this.map.on("zoomend",()=>{
+            var zoomlevel = this.map.getZoom();
+            if(zoomlevel == 16)
+              {
+                this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
+                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                  const polyline = L.polyline(coordinates as any,{
+                      color:"#84b960"
+                  }).addTo(this.map);
+                  this.polylines.push(polyline);
+                  allPolylineCoordinates.push(coordinates as any);
+              });
+          
+              this._machineData[this._singleMechineData.getIndex()].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                  const polyline = L.polyline(coordinates as any,{
+                      color:"#84b960"
+                  }).addTo(this.map);
+                  this.polylines.push(polyline);
+                  allPolylineCoordinates.push(coordinates as any);
+              });
+            }
           });
-      
-          this._machineData[this._singleMechineData.getIndex()].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-              const polyline = L.polyline(coordinates as any,{
-                  color:"#84b960"
-              }).addTo(this.map);
-              this.polylines.push(polyline);
-              allPolylineCoordinates.push(coordinates as any);
-          });
+            
+          
+          
       
           this._machineData[this._singleMechineData.getIndex()].mapData.timelyGapLinePath.forEach((line:Line) =>{
               const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
@@ -647,7 +694,7 @@ private toggleLegend(selector: string) {
               className: 'label-icon',
               html: `<div>${marker.markerLabel}</div>`,
               iconSize: [64, 64], // Adjusted iconSize if needed
-              iconAnchor: [12, 50] // Example adjustment for label position
+              iconAnchor: [10, 55] // Example adjustment for label position
           });
       
             const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
@@ -680,8 +727,8 @@ private toggleLegend(selector: string) {
       }
       
 
-    this.polylinesLayer = L.layerGroup().addTo(this.map);
-    this.polygonsLayer = L.layerGroup().addTo(this.map);
+    //this.polylinesLayer = L.layerGroup().addTo(this.map);
+    //this.polygonsLayer = L.layerGroup().addTo(this.map);
 
     if(this.showClusterControl)
     {
@@ -689,14 +736,16 @@ private toggleLegend(selector: string) {
         });
     }
 
-     L.popup({
+    if(this.legends.isUnloading!=false){
+      L.popup({
         offset:[1,6],
         keepInView:false,
         autoClose:false
     })
     .setLatLng([this._lat, this._lng])
-    .setContent(popupData(this._machineName[0]))
+    .setContent(popupData(this._machineData[0].machineCalculations.machine))
     .openOn(this.map);  
+    }
 
     this._ZoomControl = L.control.zoom({
         position:"bottomright",
@@ -749,8 +798,8 @@ private toggleLegend(selector: string) {
   
 
         const baseLayers = {
-            "terrian": terrainMutant,
-            "satellite":googlehybrid
+            "Terrian": terrainMutant,
+            "Satellite":googlehybrid
         };
 
     // scale on map implementation
@@ -780,6 +829,14 @@ private toggleLegend(selector: string) {
     });
     this.map.on('exitFullscreen', function(){
         if(window.console) window.console.log('exitFullscreen');
+    });
+
+    this.map.on('zoomend',()=>{
+      var zoomlevel = this.map.getZoom();
+      console.log(zoomlevel);
+      if(zoomlevel === 16){
+        this.legends.isUnloading = true;
+      }
     });
     
     // other leaflet map controller
@@ -904,6 +961,8 @@ private toggleLegend(selector: string) {
           this.toggleLegendAndPaths('green');
       });
   }*/
+
+      
 
     this._machineData[this._singleMechineData.getIndex()].mapData.roadTripLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);

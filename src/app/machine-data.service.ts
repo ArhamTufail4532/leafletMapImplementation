@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import * as SingleMechineDatawithMultipleDates from '../assets/singleMechineData.json';
 import * as MultipleMachineData from '../assets/MultipleMachineData.json';
 import * as MultipleMachineWithMultipleDates from '../assets/multipleMachineDateValue.json';
+import * as MultipleMachineMapData from '../assets/multipleMachineMapData.json';
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +19,10 @@ export class MachineDataService {
   }
   getSingleMachineWithMultipleDates(){
     return MultipleMachineWithMultipleDates;
+  }
+
+  getMultipleMachineMapdata(){
+    return MultipleMachineMapData;
   }
 
   private index: number = -1;

@@ -1,5 +1,4 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { MechineDataServiceService } from '../mechine-data-service.service';
 import * as L from 'leaflet';
 import { Lagends } from '../Models/Lagends.model';
 @Component({
@@ -22,13 +21,12 @@ export class SingleMachineViewComponent { //single date selecting implementation
     this.notify.emit("notification from child component!");
   } */
 
-  constructor(private _singleMechineData: MechineDataServiceService) { }
+  constructor() { }
 
   ngOnInit(): void {
     this.fetchData();
   }
   fetchData():void{
-    this._machineData = this._singleMechineData.getMechineData();
     this.showClusterControl = false;
     this.legends.isLifting = true;
     this.legends.isNoLifting = true;

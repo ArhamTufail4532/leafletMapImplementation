@@ -357,14 +357,15 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   border-radius: 11px;
 }
 
-.leaflet-interactive {
-  cursor: pointer;
-  fill: none;
-  width: 55px !important;
-    height: 50px !important;
-}
 
 .marker-cluster span {
   line-height: 49px;
   margin-left: 18px;
+}
+
+.marker-cluster {
+  background-clip: padding-box;
+  border-radius: 20px;
+  width: 52px !important;
+  height: 50px !important;
 }

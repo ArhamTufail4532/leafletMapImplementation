@@ -8,7 +8,8 @@
     </div>
     <div class="dateRangePicker">
         <div style="float: right;width: 100%;">
-            <ejs-daterangepicker (change)="onDateSelected($event)" [min]="minDate" [max]="maxDate"></ejs-daterangepicker>
+            <ejs-daterangepicker *ngIf="!legends.isUnloading" [min]="minDate" [max]="maxDate"></ejs-daterangepicker>
+            <ejs-datepicker *ngIf="legends.isUnloading" [min]="minDates" [max]="maxDates" (change)="onDateSelected($event)" (renderDayCell)="onRenderDayCell($event)"></ejs-datepicker>
         </div>
     </div>
 </div>
