@@ -275,7 +275,7 @@ constructor(private _singleMechineData: MachineDataService) {
     const markerClusterGroup = (L as any).markerClusterGroup({
       iconCreateFunction: function (cluster:any) {
         var markers = cluster.getAllChildMarkers();
-        var html = '<div class="circle">' + markers.length + '</div>';
+        var html = '<div class="circle"><span class="cluster-content">' + markers.length + '</span></div>';
         return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
     },
     spiderfyOnMaxZoom: false, showCoverageOnHover: true, zoomToBoundsOnClick: false 
