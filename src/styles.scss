@@ -219,48 +219,48 @@ style attribute {
     background-repeat: no-repeat;
   }
 
-  .marker-cluster-small {
-    background: url('./assets/m2.png');
+  /* .marker-cluster-small {
+    background-color: rgba(181, 226, 140, 0.6);
     }
   .marker-cluster-small div {
-    background: url('./assets/m2.png');
+    background-color: rgba(110, 204, 57, 0.6);
     }
   
   .marker-cluster-medium {
-    background: url('./assets/m2.png');
+    background-color: rgba(241, 211, 87, 0.6);
     }
   .marker-cluster-medium div {
-    background: url('./assets/m2.png');
+    background-color: rgba(240, 194, 12, 0.6);
     }
   
   .marker-cluster-large {
-    background: url('./assets/m2.png');
+    background-color: rgba(253, 156, 115, 0.6);
     }
   .marker-cluster-large div {
-    background: url('./assets/m2.png');
+    background-color: rgba(241, 128, 23, 0.6);
     }
   
-    /* IE 6-8 fallback colors */
+
   .leaflet-oldie .marker-cluster-small {
-    background: url('./assets/m2.png');
+    background-color: rgb(181, 226, 140);
     }
   .leaflet-oldie .marker-cluster-small div {
-    background: url('./assets/m2.png');
+    background-color: rgb(110, 204, 57);
     }
   
   .leaflet-oldie .marker-cluster-medium {
-    background: url('./assets/m2.png');
+    background-color: rgb(241, 211, 87);
     }
   .leaflet-oldie .marker-cluster-medium div {
-    background: url('./assets/m2.png');
+    background-color: rgb(240, 194, 12);
     }
   
   .leaflet-oldie .marker-cluster-large {
-    background: url('./assets/m2.png');
+    background-color: rgb(253, 156, 115);
     }
   .leaflet-oldie .marker-cluster-large div {
-    background: url('./assets/m2.png');
-  }
+    background-color: rgb(241, 128, 23);
+  } */
   
   .marker-cluster {
     background-clip: padding-box;
@@ -311,6 +311,8 @@ a.custom-control-toggle:focus{
   background-size: 26px 26px;
   background-repeat: no-repeat;
 }
+
+
 
 .leaflet-interactive {
   cursor: pointer;
@@ -368,4 +370,40 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   border-radius: 20px;
   width: 52px !important;
   height: 50px !important;
+}
+
+.ImageControlToggle{
+  text-indent: -9999px;
+    white-space: nowrap;
+    background-image: url('./assets/camera-gray.png');
+    background-size: 20px 20px;
+}
+
+.ImageControlToggle.fixed-image{
+  background-image: url('./assets/camera-green.png');
+}
+
+.custom-cluster-1 {
+  background-color: red;
+  border-radius: 50%;
+  text-align: center;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.circle {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  background-image: url('./assets/imagesClusterIcon.png');
+  text-align: center;
+}
+
+.clustergroup{
+  width: 52px;
+    height: 50px;
+    line-height: 56px;
+    background-image: url('./assets/m2.png');
+    text-align: center;
 }

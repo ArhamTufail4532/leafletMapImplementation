@@ -7,6 +7,7 @@ import "leaflet.fullscreen";
 import "src/assets/leaflet-gesture-handling.js";
 import "src/assets/leaflet-control-defaulthome.js";
 import "src/assets/leaflet-control-FixedView.js";
+import "src/assets/leaflet-control-ImageView.js"
 import "leaflet.markercluster";
 import { __metadata } from 'tslib';
 import "src/assets/leaflet-control-markers.js";
@@ -46,6 +47,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     public maxDate: Object =  {};
     private polylines: L.Polyline[] = [];
     private customMarkers : L.Marker[] = [];
+    private imageControl: any;
     public _machineData : any;
     private _markers : any;    
     _lat : number = 52.096112667;
@@ -189,6 +191,7 @@ constructor(private _singleMechineData: MachineDataService) {
     });
           
   }
+
   
   onRenderDayCell(args: RenderDayCellEventArgs): void {
     const date = args.date;
@@ -267,7 +270,16 @@ constructor(private _singleMechineData: MachineDataService) {
   }
 
   private loadMap(i: number){ 
+
     let allPolylineCoordinates: [number, number][] = [];
+    const markerClusterGroup = (L as any).markerClusterGroup({
+      iconCreateFunction: function (cluster:any) {
+        var markers = cluster.getAllChildMarkers();
+        var html = '<div class="circle">' + markers.length + '</div>';
+        return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
+    },
+    spiderfyOnMaxZoom: false, showCoverageOnHover: true, zoomToBoundsOnClick: false 
+    });
 
     this._machineData[i].mapData.roadTripLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
@@ -350,6 +362,42 @@ constructor(private _singleMechineData: MachineDataService) {
 
         this.customMarkers.push(labelMarker);
     });
+
+    console.log(this._machineData[i].imageData.length);
+
+    if (this._machineData[i].imageData.length > 0) {
+      if (!this.imageControl) {
+        this.imageControl = (L.control as any).ImageControl({
+          position: 'topright',
+          markerClusterGroup: markerClusterGroup,
+        }).addTo(this.map);
+      }
+    } 
+    else{
+      if (this.imageControl) {
+        this.imageControl.remove();
+        this.imageControl = null;
+      }
+    }
+
+    if(this._machineData[i].imageData)
+    {
+        var imagedata = this._machineData[i].imageData.forEach((image :any) =>{
+          const marker = L.marker([image.gpsLatitude, image.gpsLongitude]);
+          markerClusterGroup.addLayer(marker);
+        });
+        this.map.addLayer(markerClusterGroup);
+    }else{
+    }
+    
+    /* this._machineData[i].imageData.forEach((image: { gpsLatitude: number; gpsLongitude: number; path: any; }) =>{
+      const marker = L.marker([image.gpsLatitude, image.gpsLongitude]);
+      this._markers.push(marker);
+      const path = image.path;
+      markerClusterGroup.addLayer(marker);
+    }); */
+
+    //this.map.addLayer(markerClusterGroup);
     
     if (allPolylineCoordinates.length > 0) {
       const bounds = L.latLngBounds(allPolylineCoordinates);
@@ -623,6 +671,12 @@ constructor(private _singleMechineData: MachineDataService) {
     if(this.showClusterControl)
     {
         this._markers = (L as any).markerClusterGroup({
+          iconCreateFunction: function (cluster:any) {
+            var markers = cluster.getAllChildMarkers();
+            var html = '<div class="clustergroup">' + markers.length + '</div>';
+            return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
+        },
+        spiderfyOnMaxZoom: false, showCoverageOnHover: true, zoomToBoundsOnClick: false
         });
     }
 
@@ -677,7 +731,7 @@ constructor(private _singleMechineData: MachineDataService) {
       position:"topright"
     }).setCenter([this._lat,this._lng])
     .addTo(this.map);
-
+    
     if(this.showClusterControl==true)
     {
       (L.control as any).customControl({ position: 'topright', markers: this._markers }).addTo(this.map);
