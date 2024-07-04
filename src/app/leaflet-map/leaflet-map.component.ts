@@ -89,10 +89,9 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     _jsonData = {
       enabledDates: ['2024-07-04', '2024-07-06', '2024-07-10']
     };
-    enabledDates: Date[] = [];
-    disabledDates: string[] = [];
+    enabledDates: string[] = [];
     public dateValue: Date = new Date()
-    public minDates: Date = new Date('2018-07-01');
+    public minDates: Date = new Date('2022-07-01');
     public maxDates: Date = new Date('2024-07-31'); // Initialize as an empty object
 
 constructor(private _singleMechineData: MachineDataService, private _multipleMachineLinePath:MultipleMechineLinePathService,private router:Router) { 
@@ -121,10 +120,7 @@ constructor(private _singleMechineData: MachineDataService, private _multipleMac
     for (let i = 0; i < this._machineData.length; i++) {
       if (this._machineData[i]?.machineCalculations?.time) {
         const machineDataDateString = this._machineData[i].machineCalculations.time.toString().split('T')[0];
-        // Convert machineDataDateString to Date object and push to enabledDates
-        const dateParts = machineDataDateString.split('-');
-        const date = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
-        this.enabledDates.push(date);
+        this.enabledDates.push(machineDataDateString);
       }
     }
     console.log(this.enabledDates);
@@ -135,7 +131,6 @@ fetchData():void{
 }
   ngAfterViewInit(): void {
     this.initMap();
-    this.initializeEnabledDates();
     if(this.showClusterControl)
     {
         this.loadMarker();
@@ -231,14 +226,13 @@ fetchData():void{
 
     onRenderDayCell(args: RenderDayCellEventArgs): void {
       const date = args.date;
-      const isEnabled = this.enabledDates.some(
-        (enabledDate) =>
-          enabledDate.getDate() === date?.getDate() &&
-          enabledDate.getMonth() === date?.getMonth() &&
-          enabledDate.getFullYear() === date?.getFullYear()
-      );
-    
-      args.isDisabled = !isEnabled;
+      if(date){
+        const dateString = date.toISOString().split('T')[0];
+        const isEnabled = this.enabledDates.includes(dateString);
+        if (!isEnabled) {
+          args.isDisabled = true;
+        }
+      }
     }
 
     private fitMapToBounds(): void {
