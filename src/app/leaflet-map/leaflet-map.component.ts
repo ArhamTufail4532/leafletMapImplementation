@@ -12,8 +12,8 @@ import "leaflet.markercluster";
 import { __metadata } from 'tslib';
 import "src/assets/leaflet-control-markers.js";
 import { Lagends } from '../Models/Lagends.model';
-import {Router} from "@angular/router"
 import { RenderDayCellEventArgs } from '@syncfusion/ej2-calendars';
+
 
   var date = [
     {
@@ -43,6 +43,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
   @Input() dateRangePickerValue: boolean = true;
   @Input() legends: Lagends = new Lagends();
   @Input() ExtendViewData : boolean = false;
+    //allPolylineCoordinatesforDischarge: [number, number][] = [];
+    polylinesforDischarge: L.Polyline[] = [];
     public minDate: Object = {};
     public maxDate: Object =  {};
     private polylines: L.Polyline[] = [];
@@ -50,6 +52,8 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     private imageControl: any;
     public _machineData : any;
     private _markers : any;    
+    markerClusterGroup: any;
+    data: any;
     _lat : number = 52.096112667;
     _lng : number = 10.562562667;
     _machineName : string = "";
@@ -97,8 +101,20 @@ constructor(private _singleMechineData: MachineDataService) {
   }
 
   fetchData():void{
+    var data ;
     this._machineData = this._singleMechineData.getSingleMechineWithSingleDate();
     this._multipleDatesData = this._singleMechineData.getSingleMachineWithMultipleDates();
+    this._singleMechineData.postData(data).subscribe(
+      (response) => {
+        this.data = response;
+        console.log('Post Data Response:', this.data);
+      },
+      (error) => {
+        this.data = error;
+        console.error('Error posting data:', this.data);
+      }
+    );
+    console.log(data);
   }
 
   ngAfterViewInit(): void {
@@ -272,13 +288,12 @@ constructor(private _singleMechineData: MachineDataService) {
   private loadMap(i: number){ 
 
     let allPolylineCoordinates: [number, number][] = [];
-    const markerClusterGroup = (L as any).markerClusterGroup({
+    this.markerClusterGroup = (L as any).markerClusterGroup({
       iconCreateFunction: function (cluster:any) {
         var markers = cluster.getAllChildMarkers();
         var html = '<div class="circle"><span class="cluster-content">' + markers.length + '</span></div>';
         return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
     },
-    spiderfyOnMaxZoom: false, showCoverageOnHover: true, zoomToBoundsOnClick: false 
     });
 
     this._machineData[i].mapData.roadTripLinePath.forEach((line:Line) =>{
@@ -318,17 +333,15 @@ constructor(private _singleMechineData: MachineDataService) {
       allPolylineCoordinates.push(coordinates as any);
     }); 
 
-    if(this.legends.isUnloading==true)
-    {
-      this._machineData[i].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+
+    this._machineData[i].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
       const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
       const polyline = L.polyline(coordinates as any,{
           color:"#84b960"
       }).addTo(this.map);
       this.polylines.push(polyline);
       allPolylineCoordinates.push(coordinates as any);
-      });
-    }
+    });
 
     this._machineData[i].mapData.timelyGapLinePath.forEach((line:Line) =>{
         const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
@@ -363,13 +376,11 @@ constructor(private _singleMechineData: MachineDataService) {
         this.customMarkers.push(labelMarker);
     });
 
-    console.log(this._machineData[i].imageData.length);
-
     if (this._machineData[i].imageData.length > 0) {
       if (!this.imageControl) {
         this.imageControl = (L.control as any).ImageControl({
           position: 'topright',
-          markerClusterGroup: markerClusterGroup,
+          markerClusterGroup: this.markerClusterGroup,
         }).addTo(this.map);
       }
     } 
@@ -383,10 +394,18 @@ constructor(private _singleMechineData: MachineDataService) {
     if(this._machineData[i].imageData)
     {
         var imagedata = this._machineData[i].imageData.forEach((image :any) =>{
-          const marker = L.marker([image.gpsLatitude, image.gpsLongitude]);
-          markerClusterGroup.addLayer(marker);
+          const cameraType = image.cameraType;
+          var tooltip = L.tooltip({
+            direction:'top',
+            permanent:true,
+            offset:[-15,26],
+          })
+          .setLatLng([image.gpsLatitude, image.gpsLongitude])
+          .setContent(tooltipData(cameraType));
+          const marker = L.marker([image.gpsLatitude, image.gpsLongitude]).bindTooltip(tooltip).openTooltip();
+          this.markerClusterGroup.addLayer(marker);
         });
-        this.map.addLayer(markerClusterGroup);
+        this.map.addLayer(this.markerClusterGroup);
     }else{
     }
     
@@ -451,7 +470,11 @@ constructor(private _singleMechineData: MachineDataService) {
           this.togglePolylines('#E37056');
           break;
       case 'dischargeLinePath':
+        if(this.extendControl==true){
           this.togglePolylines('#84b960');
+        }else{
+          this.togglePolylinesForDischarge('#84b960');
+        }
           break;
       default:
           break;
@@ -459,7 +482,26 @@ constructor(private _singleMechineData: MachineDataService) {
   }
 
   private togglePolylines(color: string) {  
+    console.log("color:"+color);
     this.polylines.forEach(polyline => {
+  const options = polyline.options as L.PolylineOptions;
+  console.log(options.color);
+    if (options.color === color) {
+      console.log("match found!");
+      if (this.map.hasLayer(polyline)) {
+          this.map.removeLayer(polyline);
+      } else {
+          this.map.addLayer(polyline);
+      }
+      }else{
+        console.log("not match found!");
+      }
+    });
+  }
+
+  private togglePolylinesForDischarge(color: string) {  
+    console.log("color:"+color);
+    this.polylinesforDischarge.forEach(polyline => {
   const options = polyline.options as L.PolylineOptions;
   console.log(options.color);
     if (options.color === color) {
@@ -492,11 +534,19 @@ constructor(private _singleMechineData: MachineDataService) {
         gestureHandling: true,
         zoomControl: false,
         attributionControl:false,
+        maxZoom: 18
     }).setView([this._lat, this._lng], 4);
+
+    
+
+    let legend = document.querySelector('.green-box-legend') as HTMLElement;
+    if(this.extendControl!=true){
+      legend.style.display = 'none';
+    }
 
     if(this._singleMechineData.getIndex()==-1)
     {
-      if(this.legends.isUnloading==false && this.showClusterControl==false){
+      /* if(this.legends.isUnloading==false && this.showClusterControl==false){
 
         let allPolylineCoordinates: [number, number][] = [];
     
@@ -559,7 +609,7 @@ constructor(private _singleMechineData: MachineDataService) {
              this.homeControl.setZoom(zoomLevel);
           }, 200);    
         }
-      }
+      } */
     }else{
         if(this.showClusterControl==false){
           let allPolylineCoordinates: [number, number][] = [];
@@ -590,12 +640,46 @@ constructor(private _singleMechineData: MachineDataService) {
               this.polylines.push(polyline);
               allPolylineCoordinates.push(coordinates as any);
           });
-      
-          this.map.on("zoomend",()=>{
-            var zoomlevel = this.map.getZoom();
-            if(zoomlevel == 16)
-            {
-              this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
+          
+          if(this.extendControl==false){
+            this.map.on("zoomend",()=>{
+              var zoomlevel = this.map.getZoom();
+              if(zoomlevel > 16)
+              {
+                legend.style.display='inline-block';
+                this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
+                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                const polyline = L.polyline(coordinates as any,{
+                      color:"#84b960"
+                  }).addTo(this.map);
+                  this.polylinesforDischarge.push(polyline);
+                 allPolylineCoordinates.push(coordinates as any);
+                });
+            
+                this._machineData[this._singleMechineData.getIndex()].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+                    const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                    const polyline = L.polyline(coordinates as any,{
+                        color:"#84b960"
+                    }).addTo(this.map);
+                    this.polylinesforDischarge.push(polyline);
+                    allPolylineCoordinates.push(coordinates as any);
+                });
+              }else if(zoomlevel<16){
+                  // Remove only the polylines added at zoom level 16
+                  legend.style.display = 'none';
+                  this.polylinesforDischarge.forEach(polyline => {
+                      this.map.removeLayer(polyline);
+                      console.log("polylines remove");
+                  });
+                  // Clear the polylines array
+                  this.polylinesforDischarge = [];
+                  // Clear the allPolylineCoordinates array if needed
+                  //allPolylineCoordinatesforDischarge = [];
+              }
+            });
+          }else{
+            
+            this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
               const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
               const polyline = L.polyline(coordinates as any,{
                     color:"#84b960"
@@ -611,9 +695,8 @@ constructor(private _singleMechineData: MachineDataService) {
                   }).addTo(this.map);
                   this.polylines.push(polyline);
                   allPolylineCoordinates.push(coordinates as any);
-              });
-            }
-          });
+              });  
+          }
             
           this._machineData[this._singleMechineData.getIndex()].mapData.timelyGapLinePath.forEach((line:Line) =>{
               const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
@@ -648,7 +731,41 @@ constructor(private _singleMechineData: MachineDataService) {
           .addTo(this.map);
       
           this.customMarkers.push(labelMarker);
-          });
+          }); 
+
+          if(this.extendControl==true){
+            this.markerClusterGroup = (L as any).markerClusterGroup({
+              iconCreateFunction: (cluster: any) => {
+                const markers = cluster.getAllChildMarkers();
+                const html = '<div class="circle"><span class="cluster-content">' + markers.length + '</span></div>';
+                return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
+              },
+            });
+
+            if (this._machineData[this._singleMechineData.getIndex()].imageData.length > 0) {
+              if (!this.imageControl) {
+                this.imageControl = (L.control as any).ImageControl({
+                  position: 'topright',
+                  markerClusterGroup: this.markerClusterGroup,
+                }).addTo(this.map);
+              }
+            } 
+            else{
+              if (this.imageControl) {
+                this.imageControl.remove();
+                this.imageControl = null;
+              }
+            }
+            if(this._machineData[this._singleMechineData.getIndex()].imageData)
+              {
+                  var imagedata = this._machineData[this._singleMechineData.getIndex()].imageData.forEach((image :any) =>{
+                    const marker = L.marker([image.gpsLatitude, image.gpsLongitude]);
+                    this.markerClusterGroup.addLayer(marker);
+                  });
+                  this.map.addLayer(this.markerClusterGroup);
+              }else{
+              }
+          }
           
           if (allPolylineCoordinates.length > 0) {
             const bounds = L.latLngBounds(allPolylineCoordinates);
@@ -680,7 +797,7 @@ constructor(private _singleMechineData: MachineDataService) {
         });
     }
 
-    if(this.legends.isUnloading!=false){
+    if(this.showClusterControl==false && this.extendControl==true){
       L.popup({
         offset:[1,6],
         keepInView:false,
@@ -827,7 +944,7 @@ constructor(private _singleMechineData: MachineDataService) {
       }
     }
     
-     if(this.legends.isUnloading!=true){
+     if(this.extendControl==false){
       const mapstyle = document.querySelector("#leafletMap");
       const map = document.querySelector(".mapstyle");
       if(mapstyle){
@@ -949,4 +1066,12 @@ function popupData(value:any): L.Content | ((source: L.Layer) => L.Content) {
     return `<div style='text-align:center;' class='machine-status-holder'> <p style='margin-bottom:2px'>${value}</p> <img src='./assets/TigerOff.png' alt='images mechine' width='70px'> <span class='status'> offline </span></div>`;
 }
 
+
+function tooltipData(cameraType: any): L.Content | ((source: L.Layer) => L.Content) {
+    if(cameraType=='unloadingcam'){
+      return `<div class="tooltipImage"><img src='./assets/MapBack.png' title="back camera"></div>`;
+    }else{
+      return `<div class="tooltipImage" title='back camera' title="front camera"><img src='./assets/MapFront.png'></div>`;
+    }
+}
 

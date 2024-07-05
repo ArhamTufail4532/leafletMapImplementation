@@ -11,6 +11,7 @@ import { SingleMachineViewExtendComponent } from './single-machine-view-extend/s
 import { MapViewComponent } from './map-view/map-view.component';
 import { LeafletDashboardComponent } from './leaflet-dashboard/leaflet-dashboard.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import {HttpClientModule} from '@angular/common/http';
 
 @NgModule({
   declarations: [
@@ -25,6 +26,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
     BrowserModule,
     AppRoutingModule,
     DateRangePickerModule,
+    HttpClientModule,
     CalendarModule, DatePickerModule, TimePickerModule, DateTimePickerModule, BrowserAnimationsModule,MatButtonModule,FormsModule
   ],
   providers: [],

@@ -17,7 +17,7 @@ export class SingleMachineViewExtendComponent { //multiple dates selecting imple
     this.fetchData();
   }
   fetchData():void{
-    this.legends.isUnloading = false;
+    this.legends.isUnloading = true;
     this.dateRangePicker = false;
     console.log("index data is "+this._singleMachineData.getIndex());
   }
