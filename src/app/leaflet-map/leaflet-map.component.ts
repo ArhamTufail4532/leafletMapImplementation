@@ -165,6 +165,7 @@ constructor(private _singleMechineData: MachineDataService) {
         var tooltip = L.tooltip({
           direction:'top',
           permanent:true,
+          interactive:true,
           offset:[-15,26],
         })
         .setLatLng([lat, lng])
@@ -398,6 +399,7 @@ constructor(private _singleMechineData: MachineDataService) {
           var tooltip = L.tooltip({
             direction:'top',
             permanent:true,
+            interactive:true,
             offset:[-15,26],
           })
           .setLatLng([image.gpsLatitude, image.gpsLongitude])
@@ -759,7 +761,16 @@ constructor(private _singleMechineData: MachineDataService) {
             if(this._machineData[this._singleMechineData.getIndex()].imageData)
               {
                   var imagedata = this._machineData[this._singleMechineData.getIndex()].imageData.forEach((image :any) =>{
-                    const marker = L.marker([image.gpsLatitude, image.gpsLongitude]);
+                    const cameraType = image.cameraType; 
+                    var tooltip = L.tooltip({
+                      direction:'top',
+                      permanent:true,
+                      interactive:true,
+                      offset:[-15,26],
+                    })
+                    .setLatLng([image.gpsLatitude, image.gpsLongitude])
+                    .setContent(tooltipData(cameraType));
+                    const marker = L.marker([image.gpsLatitude, image.gpsLongitude]).bindTooltip(tooltip).openTooltip();
                     this.markerClusterGroup.addLayer(marker);
                   });
                   this.map.addLayer(this.markerClusterGroup);
