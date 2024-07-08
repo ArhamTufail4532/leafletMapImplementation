@@ -6,6 +6,7 @@ import {MatButtonModule} from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 import { AppComponent } from './app.component';
 import { LeafletMapComponent } from './leaflet-map/leaflet-map.component';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { SingleMachineViewComponent } from './single-machine-view/single-machine-view.component';
 import { SingleMachineViewExtendComponent } from './single-machine-view-extend/single-machine-view-extend.component';
 import { MapViewComponent } from './map-view/map-view.component';
@@ -27,6 +28,7 @@ import {HttpClientModule} from '@angular/common/http';
     AppRoutingModule,
     DateRangePickerModule,
     HttpClientModule,
+    MatProgressSpinnerModule,
     CalendarModule, DatePickerModule, TimePickerModule, DateTimePickerModule, BrowserAnimationsModule,MatButtonModule,FormsModule
   ],
   providers: [],
