@@ -34,4 +34,13 @@ export class MachineDataService {
   getIndex(): number {
     return this.index;
   }
+
+  private date : any;
+
+  setDate(value: any):void {
+    this.date = value;
+  }
+  getDate(): any{
+    return this.date;
+  }
 }

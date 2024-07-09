@@ -53,6 +53,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     private imageControl: any;
     public _machineData : any;
     private _markers : any;    
+    currentDate : any;
     markerClusterGroup: any;
     data: any;
     _lat : number = 52.096112667;
@@ -75,19 +76,15 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
 }
 
   ngOnInit(): void {
-
     this.loadMapData();
-    for(var i=0;i<date.length;i++){
-      this.minDate = date[i].startDate;
-      this.maxDate = date[i].endDate;
-    }
-
     this.fetchData();
     this.initializeEnabledDates();
     this.removeMap();
   }
 
   loadMapData(): void {
+    const currentDate = new Date();
+    const formattedDate = currentDate.toISOString();
     const payload = {
       "UserLanguage": "en",
       "CustomerNumber": 500000,
@@ -101,7 +98,7 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
           }
       ],
       "Geohashes": [],
-      "StartDateTime": "2024-07-08T10:51:02.570Z",
+      "StartDateTime": formattedDate,
       "ZoomLevel": 11,
       "LegendStatus": [
           0,
@@ -167,6 +164,11 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
 
   ngAfterViewInit(): void {
     this.initMap();
+    if(this.extendControl==false && this.showClusterControl==false){
+      this.map.on('moveend', this.onMapMoveEnd.bind(this));
+      this.map.on('zoomend', this.onMapZoomEnd.bind(this));
+      this.getSingleMachineMapViewData();
+    }
     if(this.showClusterControl)
     {
         this.loadMarker();
@@ -175,7 +177,142 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     this.fitMapToBounds();
   }
 
+  private onMapMoveEnd() {
+    this.getSingleMachineMapViewData();
+  }
   
+  private onMapZoomEnd() {
+    this.getSingleMachineMapViewData();
+  }
+
+  private createPayload(bounds: L.LatLngBounds) {
+    this.currentDate = this._singleMechineData.getDate() || new Date().toISOString();
+    console.log("current date is"+this.currentDate); 
+    
+    return {
+      "UserLanguage": "en",
+      "CustomerNumber": 500000,
+      "IsMapRender": true,
+      "ShowRawDataOnly": false,
+      "RequestedMachinesList": [
+          {
+              "SerialNumber": "6M2039",
+              "RoleId": "204",
+              "LicenseId": "3e43c110-5149-42f3-a690-bcfdd7238cb6"
+          }
+      ],
+      "Geohashes": [],
+      "StartDateTime": this.currentDate,
+      "EndDateTime": this.currentDate,
+      "LegendStatus": [1, 3, 0, 2],
+      "ZoomLevel": this.map.getZoom(),
+      "Height": 600, 
+      "Width": 1896,
+      "IsFirstRequest": false,
+      "MaxLat": bounds.getNorthEast().lat,
+      "MaxLng": bounds.getNorthEast().lng,
+      "MinLat": bounds.getSouthWest().lat,
+      "MinLng": bounds.getSouthWest().lng,
+      "LoggedInUserId": "6da7a9c4-d338-454e-b580-c46132f29f10"
+    };
+  }
+
+  private clearMap() {
+    // Remove previous polylines and markers
+    this.polylines.forEach(polyline => polyline.remove());
+    this.customMarkers.forEach(marker => marker.remove());
+    this.map.closePopup();
+    this.polylines = [];
+    this.customMarkers = [];
+}
+
+  private fetchAndUpdateMapData(payload: any) {
+    this.isLoading = true;
+    this.mapDataService.getSingleMachineMapViewDataForExtendView(payload).subscribe(data => {
+      this.isLoading = false;
+      this.clearMap();
+      let allPolylineCoordinates: [number, number][] = [];
+  
+      // Add polylines
+      this.addPolylines(data.mapData.roadTripLinePath, "#7acdef", allPolylineCoordinates);
+      this.addPolylines(data.mapData.harvestingLinePath, "#ffd800", allPolylineCoordinates);
+      this.addPolylines(data.mapData.notHarvestingLinePath, "#E37056", allPolylineCoordinates);
+      this.addPolylines(data.mapData.dischargeLinePath, "#84b960", allPolylineCoordinates);
+      this.addPolylines(data.mapData.dischargeWithoutCircleLinePath, "#84b960", allPolylineCoordinates);
+      this.addPolylines(data.mapData.timelyGapLinePath, "#fd7e14", allPolylineCoordinates);
+  
+      // Add harvesting polygons
+      this.addPolygons(data.mapData.harvestingPolygonPath, "#ffd800", allPolylineCoordinates);
+  
+      // Add markers
+      this.addMarkers(data.mapMarkers.harvestingMapMarkers);
+  
+      // Adjust the map bounds if needed
+      if (allPolylineCoordinates.length > 0) {
+        const bounds = L.latLngBounds(allPolylineCoordinates);
+        this.map.fitBounds(bounds);
+        const center = bounds.getCenter();
+        if (!isNaN(center.lat) && !isNaN(center.lng)) {
+          this.homeControl.setCenter(center);
+          this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
+        }
+      }
+    }, error => {
+      console.error('Error fetching map data', error);
+      this.isLoading = false;
+    });
+  }
+
+  private addPolylines(linePaths: any[], color: string, allPolylineCoordinates: [number, number][]) {
+    linePaths.forEach((line: Line) => {
+      const coordinates = line.coordinates.map(coord => [coord.lat, coord.lng]);
+      const polyline = L.polyline(coordinates as any, { color }).addTo(this.map);
+      this.polylines.push(polyline);
+      allPolylineCoordinates.push(coordinates as any);
+    });
+  }
+
+  private addPolygons(polygonPaths: any[], color: string, allPolylineCoordinates: [number, number][]) {
+    polygonPaths.forEach((polygon: Line) => {
+      const coordinates = polygon.coordinates.map(coord => [coord.lat, coord.lng]);
+      const polyline = L.polyline(coordinates as any, { color }).addTo(this.map);
+      this.polylines.push(polyline);
+      allPolylineCoordinates.push(coordinates as any);
+    });
+  }
+
+  private addMarkers(markers: any[]) {
+    const customIcon = L.icon({
+      iconUrl: './assets/red-flag.png',
+      iconSize: [64, 64],
+      iconAnchor: [10, 64]
+    });
+  
+    markers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) => {
+      const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: customIcon })
+        .addTo(this.map);
+      this.customMarkers.push(customMarker);
+  
+      const label = L.divIcon({
+        className: 'label-icon',
+        html: `<div>${marker.markerLabel}</div>`,
+        iconSize: [64, 64],
+        iconAnchor: [10, 55]
+      });
+  
+      const labelMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+        .addTo(this.map);
+  
+      this.customMarkers.push(labelMarker);
+    });
+  }
+
+  private getSingleMachineMapViewData() {
+    const bounds = this.map.getBounds();
+    const payload = this.createPayload(bounds);
+    this.fetchAndUpdateMapData(payload);
+  }
+
   private loadMultipleMachineMapDataOnMap(){
     this.map.on('moveend', () => this.onMapMove());
     this.map.on('zoomend', () => this.onMapMove());
@@ -333,10 +470,203 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     const selectedMonth = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
     const selectedDay = selectedDate.getDate().toString().padStart(2, '0');
     const formattedDate = `${selectedYear}-${selectedMonth}-${selectedDay}T00:00:00.000Z`;
+    this._singleMechineData.setDate(formattedDate);
+    console.log("this is my date"+this._singleMechineData.getDate());
     this.clearMapData();
     this.fetchMapData(formattedDate);
   }
 
+
+
+  /* private getSingleMachineMapViewData(){
+    this.currentDate = this._singleMechineData.getDate();
+    let legend = document.querySelector('.green-box-legend') as HTMLElement;
+    if(this.extendControl!=true){
+      legend.style.display = 'none';
+    }
+    if(this.currentDate==null){
+      const currentDate = new Date();
+      const formattedDate = currentDate.toISOString();
+      this.currentDate = formattedDate;
+    } 
+      const payload = {
+        "UserLanguage": "en",
+        "CustomerNumber": 500000,
+        "IsMapRender": true,
+        "ShowRawDataOnly": false,
+        "RequestedMachinesList": [
+            {
+                "SerialNumber": "6M2039",
+                "RoleId": "204",
+                "LicenseId": "3e43c110-5149-42f3-a690-bcfdd7238cb6"
+            }
+        ],
+        "Geohashes": [],
+        "StartDateTime": this.currentDate,
+        "EndDateTime": this.currentDate,
+        "LegendStatus": [
+            1,
+            3,
+            0,
+            2
+        ],
+        "ZoomLevel": 11,
+        "Height": 600,
+        "Width": 1896,
+        "IsFirstRequest": true,
+        "MaxLat": 51.290397773626424,
+        "MaxLng": 11.102439941406255,
+        "MinLat": 51.0406641842671,
+        "MinLng": 9.800560058593755,
+        "LoggedInUserId": "6da7a9c4-d338-454e-b580-c46132f29f10"
+    };
+    this.isLoading = true;
+    this.mapDataService.getSingleMachineMapViewDataForExtendView(payload).subscribe(data => {
+      this.isLoading = false;
+      let allPolylineCoordinates: [number, number][] = [];
+          data.mapData.roadTripLinePath.forEach((line:Line) =>{
+          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+          const polyline = L.polyline(coordinates as any,{
+                color:"#7acdef" 
+            }).addTo(this.map);
+            this.polylines.push(polyline);
+            allPolylineCoordinates.push(coordinates as any);
+          });
+          data.mapData.harvestingLinePath.forEach((line:Line) =>{
+            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+            const polyline = L.polyline(coordinates as any,{
+                color:"#ffd800"
+            }).addTo(this.map);
+            this.polylines.push(polyline);
+            allPolylineCoordinates.push(coordinates as any);
+        });
+        data.mapData.notHarvestingLinePath.forEach((line:Line) =>{
+            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                const polyline = L.polyline(coordinates as any,{
+                color:"#E37056"
+            }).addTo(this.map);
+            this.polylines.push(polyline);
+            allPolylineCoordinates.push(coordinates as any);
+        });
+        if(this.extendControl==false){
+          this.map.on("zoomend",()=>{
+            var zoomlevel = this.map.getZoom();
+            console.log("zoom level is " + zoomlevel);
+            if(zoomlevel > 16)
+            {
+              legend.style.display='inline-block';
+              data.mapData.dischargeLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polyline = L.polyline(coordinates as any,{
+                    color:"#84b960"
+                }).addTo(this.map);
+                this.polylinesforDischarge.push(polyline);
+               allPolylineCoordinates.push(coordinates as any);
+              });
+          
+              data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                  const polyline = L.polyline(coordinates as any,{
+                      color:"#84b960"
+                  }).addTo(this.map);
+                  this.polylinesforDischarge.push(polyline);
+                  allPolylineCoordinates.push(coordinates as any);
+              });
+            }else if(zoomlevel<16){
+                // Remove only the polylines added at zoom level 16
+                legend.style.display = 'none';
+                this.polylinesforDischarge.forEach(polyline => {
+                    this.map.removeLayer(polyline);
+                    console.log("polylines remove");
+                });
+                // Clear the polylines array
+                this.polylinesforDischarge = [];
+                // Clear the allPolylineCoordinates array if needed
+                //allPolylineCoordinatesforDischarge = [];
+            }
+          });
+        }
+          data.mapData.dischargeLinePath.forEach((line:Line) =>{
+            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+            const polyline = L.polyline(coordinates as any,{
+                  color:"#84b960"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+            });
+        
+            data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                const polyline = L.polyline(coordinates as any,{
+                    color:"#84b960"
+                }).addTo(this.map);
+                this.polylines.push(polyline);
+                allPolylineCoordinates.push(coordinates as any);
+            });  
+            data.mapData.timelyGapLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polyline = L.polyline(coordinates as any,{
+                  color:"#fd7e14"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+          }); 
+          data.mapData.harvestingPolygonPath.forEach((line:Line) =>{
+            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+            const polygon = L.polyline(coordinates as any,{
+                color:"#ffd800"
+            }).addTo(this.map);
+            this.polylines.push(polygon);
+            allPolylineCoordinates.push(coordinates as any);
+        }); 
+
+        const customIcon = L.icon({
+          iconUrl: './assets/red-flag.png',
+          iconSize: [64, 64],
+          iconAnchor: [10, 64]
+        });
+    
+    
+        const markerdata = data.mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
+        const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
+        .addTo(this.map);
+        this.customMarkers.push(customMarker);
+    
+    
+        const label = L.divIcon({
+          className: 'label-icon',
+          html: `<div>${marker.markerLabel}</div>`,
+          iconSize: [64, 64], // Adjusted iconSize if needed
+          iconAnchor: [10, 55] // Example adjustment for label position
+        });
+    
+        const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+        .addTo(this.map);
+    
+        this.customMarkers.push(labelMarker);
+        });
+
+        if (allPolylineCoordinates.length > 0) {
+          console.log('enter into the fit bound method');
+          const bounds = L.latLngBounds(allPolylineCoordinates);
+          this.map.fitBounds(bounds);
+          const center = bounds.getCenter();
+          if (isNaN(center.lat) || isNaN(center.lng)) {
+            console.error('Invalid center coordinates:', center.lat, center.lng);
+            return;
+          }
+          const zoom = this.map.getBoundsZoom(bounds);
+          this.homeControl.setCenter(center);
+          console.log('Calculated Zoom Level:', zoom);
+          this.homeControl.setZoom(zoom);
+        }else{
+            console.error('No valid polyline coordinates found.');
+        }
+    }, error => {
+      console.error('Error fetching map data', error);
+      this.isLoading = false;
+    });
+  } */
 
   private clearMapData(): void {
 
@@ -805,7 +1135,8 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     }
   }
 
-  private togglePolylines(color: string) {  
+  private togglePolylines(color: string) { 
+    console.log("color is:"+color) 
     this.polylines.forEach(polyline => {
   const options = polyline.options as L.PolylineOptions;
     if (options.color === color) {
@@ -854,7 +1185,9 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
         gestureHandling: true,
         zoomControl: false,
         attributionControl:false,
-        maxZoom: 18
+        maxZoom: 18,
+        center: [0, 0], // Default center coordinates
+        zoom: 2
     });
 
     
@@ -864,10 +1197,10 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
       
     } */
 
-    let legend = document.querySelector('.green-box-legend') as HTMLElement;
+    /* let legend = document.querySelector('.green-box-legend') as HTMLElement;
     if(this.extendControl!=true){
       legend.style.display = 'none';
-    }
+    } */
 
     if(this._singleMechineData.getIndex()==-1)
     {
@@ -966,7 +1299,7 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
               allPolylineCoordinates.push(coordinates as any);
           });
           
-          if(this.extendControl==false){
+          /* if(this.extendControl==false){
             this.map.on("zoomend",()=>{
               var zoomlevel = this.map.getZoom();
               if(zoomlevel > 16)
@@ -1021,7 +1354,7 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
                   this.polylines.push(polyline);
                   allPolylineCoordinates.push(coordinates as any);
               });  
-          }
+          } */
             
           this._machineData[this._singleMechineData.getIndex()].mapData.timelyGapLinePath.forEach((line:Line) =>{
               const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
@@ -1290,8 +1623,9 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
       const map = document.querySelector(".mapstyle");
       if(mapstyle){
         mapstyle.classList.add("mapwidth");
-        (document.querySelector(".mapstyle") as any).style.width = 100+"%";
+        (document.querySelector(".mapstyle") as any).style.width = 95 +"%";
         (document.querySelector(".mapstyle") as any).style.padding = 0+"px";
+        (document.querySelector(".mapstyle") as any).style.margin = 'auto';
       }
       if (this.map) { 
         setTimeout(() => {
