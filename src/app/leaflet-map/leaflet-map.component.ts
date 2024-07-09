@@ -134,6 +134,7 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
       .openOn(this.map); 
 
       this.homeControl.setCenter([lat,lng]);
+      this.homeControl.setZoom(8);
       this.map.setView([lat, lng],8);
 
     }, error => {
@@ -332,21 +333,38 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     const selectedMonth = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
     const selectedDay = selectedDate.getDate().toString().padStart(2, '0');
     const formattedDate = `${selectedYear}-${selectedMonth}-${selectedDay}T00:00:00.000Z`;
-    this.polylines.forEach(polyline => this.map.removeLayer(polyline));
-    this.polylines = [];
-    this.customMarkers.forEach(marker => {
-        if (this.map.hasLayer(marker)) {
-            this.map.removeLayer(marker);
-        }
-    });
-    this.customMarkers = [];
-     /* if (this.markerClusterGroup) {
-      this.markerClusterGroup.clearLayers();
-    } */
-    //this.markerClusterGroup = null; 
+    this.clearMapData();
     this.fetchMapData(formattedDate);
   }
 
+
+  private clearMapData(): void {
+
+    this.map.closePopup();
+    // Remove all polylines
+    this.polylines.forEach(polyline => this.map.removeLayer(polyline));
+    this.polylines = [];
+  
+    // Remove all custom markers
+    this.customMarkers.forEach(marker => {
+      if (this.map.hasLayer(marker)) {
+        this.map.removeLayer(marker);
+      }
+    });
+    this.customMarkers = [];
+  
+    // Remove marker cluster group
+    if (this.markerClusterGroup) {
+      this.map.removeLayer(this.markerClusterGroup);
+      this.markerClusterGroup = null;
+    }
+  
+    // Remove image control
+    if (this.imageControl) {
+      this.imageControl.remove();
+      this.imageControl = null;
+    }
+  }
   fetchMapData(startDate: string): void {
     const payload = {
         "UserLanguage": "en",
@@ -383,16 +401,7 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     this.mapDataService.getSingleMachineDataWithMultipleDates(payload).subscribe(
       data => {
         this.isLoading = false;
-        //this.clearMapData();
         let allPolylineCoordinates: [number, number][] = [];
-       
-        this.markerClusterGroup = (L as any).markerClusterGroup({
-          iconCreateFunction: function (cluster:any) {
-            var markers = cluster.getAllChildMarkers();
-            var html = '<div class="circle"><span class="cluster-content">' + markers.length + '</span></div>';
-            return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
-        },
-        });
     
         data.mapData.roadTripLinePath.forEach((line:Line) =>{
             const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
@@ -474,11 +483,20 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
         });
     
         if (data.imageData.length > 0) {
+          this.markerClusterGroup = (L as any).markerClusterGroup({
+            iconCreateFunction: function (cluster:any) {
+              var markers = cluster.getAllChildMarkers();
+              var html = '<div class="circle"><span class="cluster-content">' + markers.length + '</span></div>';
+              return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
+          },
+          });
           if (!this.imageControl) {
             this.imageControl = (L.control as any).ImageControl({
               position: 'topright',
               markerClusterGroup: this.markerClusterGroup,
             }).addTo(this.map);
+          }else{
+            this.imageControl.updateMarkerClusterGroup(this.markerClusterGroup);
           }
         } 
         else{
@@ -490,7 +508,7 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     
         if(data.imageData)
         {
-            this.markerClusterGroup.clearLayers();
+            //this.markerClusterGroup.clearLayers();
             var imagedata = data.imageData.forEach((image :any) =>{
               const cameraType = image.cameraType;
               const imagePath = image.path;
@@ -502,7 +520,9 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
               })
               .setLatLng([image.gpsLatitude, image.gpsLongitude])
               .setContent(tooltipData(cameraType,imagePath));
-              const marker = L.marker([image.gpsLatitude, image.gpsLongitude]).bindTooltip(tooltip).openTooltip();
+              const marker = L.marker([image.gpsLatitude, image.gpsLongitude],{
+                opacity:0
+              }).bindTooltip(tooltip).openTooltip();
               this.markerClusterGroup.addLayer(marker);
               marker.on('click', (e: any) => {
                 const target = e.originalEvent.target as HTMLElement;
@@ -512,20 +532,12 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
                 }
               });
             });
-            this.map.addLayer(this.markerClusterGroup);
+            //this.map.addLayer(this.markerClusterGroup);
         }else{
-        }
-        
-        /* this._machineData[i].imageData.forEach((image: { gpsLatitude: number; gpsLongitude: number; path: any; }) =>{
-          const marker = L.marker([image.gpsLatitude, image.gpsLongitude]);
-          this._markers.push(marker);
-          const path = image.path;
-          markerClusterGroup.addLayer(marker);
-        }); */
-    
-        //this.map.addLayer(markerClusterGroup);
+        }       
         
         if (allPolylineCoordinates.length > 0) {
+          console.log('enter into the fit bound method');
           const bounds = L.latLngBounds(allPolylineCoordinates);
           this.map.fitBounds(bounds);
           const center = bounds.getCenter();
@@ -548,13 +560,6 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     )
   }
 
-  clearMapData(): void {
-    this.map.eachLayer((layer) => {
-      if (layer instanceof L.Marker || layer instanceof L.Popup) {
-        this.map.removeLayer(layer);
-      }
-    });
-  }
 
   /* onDateSelected(args: any): void {
     let selectedDate = args.value;
@@ -752,7 +757,7 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     }else{
         console.error('No valid polyline coordinates found.');
     }
-  }
+  } 
 
   private toggleLegendAndPaths(color: string) {
     switch (color) {
@@ -801,10 +806,8 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
   }
 
   private togglePolylines(color: string) {  
-    console.log("color:"+color);
     this.polylines.forEach(polyline => {
   const options = polyline.options as L.PolylineOptions;
-  console.log(options.color);
     if (options.color === color) {
       console.log("match found!");
       if (this.map.hasLayer(polyline)) {
@@ -819,10 +822,8 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
   }
 
   private togglePolylinesForDischarge(color: string) {  
-    console.log("color:"+color);
     this.polylinesforDischarge.forEach(polyline => {
-  const options = polyline.options as L.PolylineOptions;
-  console.log(options.color);
+    const options = polyline.options as L.PolylineOptions;
     if (options.color === color) {
       console.log("match found!");
       if (this.map.hasLayer(polyline)) {
@@ -1191,26 +1192,34 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
         "Satellite":googlehybrid
     };
 
+    var overlayMaps = {
+
+  };
+
     const scaleView = L.control.scale({
       position : 'bottomleft',
       metric:true,
       updateWhenIdle:true
     }).addTo(this.map);
 
-    const groupedOverlays = {};
+    /* const groupedOverlays = {}; */
 
-    const options = {
+    /* const options = {
       exclusiveGroups: [],
       groupCheckboxes: true,
       collapsed : false,
       position : "topleft"
-    };
-
-    (L.control as any).groupedLayers(baseLayers, groupedOverlays, options).addTo(this.map);
+    }; */
+    var layerControl = L.control.layers(baseLayers, overlayMaps,{
+      collapsed:false,
+      position:'topleft'
+    }).addTo(this.map);
+    //(L.control as any).groupedLayers(baseLayers, groupedOverlays, options).addTo(this.map);
 
     if(this.legends.isLifting)
     {
         var yellowLi = document.querySelector('.component li .yellow-box')?.parentElement as HTMLElement;
+        console.log("span"+yellowLi);
         if (yellowLi) {
           yellowLi.addEventListener('click', () => {
               this.toggleLegendAndPaths('yellow');

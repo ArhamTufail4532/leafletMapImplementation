@@ -7,11 +7,10 @@ L.Control.ImageControl = L.Control.extend({
     const link = L.DomUtil.create('a', 'ImageControlToggle', container);
     link.href = '#';
     link.title = 'Picture view';
-    var markerClusterGroup = this.options.markerClusterGroup;
-
+    this.markerClusterGroup = this.options.markerClusterGroup;
 
     link.classList.add('fixed-image');
-    map.addLayer(markerClusterGroup);
+    map.addLayer(this.markerClusterGroup);
 
     L.DomEvent.on(link, 'click', function(e) {
       L.DomEvent.stopPropagation(e);
@@ -19,23 +18,33 @@ L.Control.ImageControl = L.Control.extend({
 
       if (!link.classList.contains('fixed-image')) {
         link.classList.add('fixed-image');
-        if (markerClusterGroup) {
-          map.addLayer(markerClusterGroup); // Show cluster markers
+        if (this.markerClusterGroup) {
+          map.addLayer(this.markerClusterGroup); // Show cluster markers
         }
       } else {
         link.classList.remove('fixed-image');
-        if (markerClusterGroup) {
-          map.removeLayer(markerClusterGroup); // Hide cluster markers
+        if (this.markerClusterGroup) {
+          map.removeLayer(this.markerClusterGroup); // Hide cluster markers
         }
       }  
       
-    });
+    }, this);
 
     return container;
   },
 
   onRemove: function(map) {
     // Cleanup if necessary
+  },
+
+  updateMarkerClusterGroup: function(newMarkerClusterGroup) {
+    if (this._map && this.markerClusterGroup) {
+      this._map.removeLayer(this.markerClusterGroup);
+    }
+    this.markerClusterGroup = newMarkerClusterGroup;
+    if (this._map) {
+      this._map.addLayer(this.markerClusterGroup);
+    }
   }
 });
 
