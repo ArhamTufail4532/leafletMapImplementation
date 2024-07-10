@@ -26,7 +26,8 @@ export class MachineDataService {
   }
 
   private index: number = -1;
-
+  private startDate : any;
+  private endDate : any;
   setIndex(value: number): void {
     this.index = value;
   }
@@ -42,5 +43,18 @@ export class MachineDataService {
   }
   getDate(): any{
     return this.date;
+  }
+
+  setStartDate(value : any):void {
+    this.startDate = value;
+  }
+  getStartDate(){
+    return this.startDate;
+  }
+  setEndDate(value : any): void {
+    this.endDate = value;
+  }
+  getEndDate(){
+    return this.endDate;
   }
 }
