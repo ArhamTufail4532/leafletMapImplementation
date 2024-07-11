@@ -14,7 +14,8 @@
     </div>
     <div class="dateRangePicker">
         <div style="float: right;width: 100%;">
-            <ejs-daterangepicker *ngIf="!extendControl" [placeholder]="'Select a date range'" (change)="onDateRangeChange($event)"></ejs-daterangepicker>
+            <ejs-daterangepicker *ngIf="!extendControl && !showClusterControl" [placeholder]="'Select a date range'" (change)="onDateRangeChange($event)"></ejs-daterangepicker>
+            <ejs-daterangepicker *ngIf="showClusterControl" [placeholder]="'Select a date range'" (change)="onDateRangeChangeForMapView($event)"></ejs-daterangepicker>
             <!-- <ejs-datepicker *ngIf="extendControl" [min]="minDates" [max]="maxDates" (change)="onDateSelected($event)" (renderDayCell)="onRenderDayCell($event)"></ejs-datepicker> -->
             <ejs-datepicker *ngIf="extendControl" (change)="onDateSelected($event)"></ejs-datepicker>
         </div>
