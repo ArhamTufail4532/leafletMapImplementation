@@ -307,6 +307,11 @@ onDateRangeChangeForMapView(event : any):void{
     }
 }
 
+hideSpinnerWithDelay() {
+  setTimeout(() => {
+    this.isLoading = false;
+  }, 3000);
+}
 
 private getMultipleMachineWithMultipleDates(startDate:string,endDate:string) {
   const bounds = this.map.getBounds();
@@ -499,179 +504,180 @@ private fetchAndUpdateMapDataForExtend(payload:any){
 private fetchAndUpdateMapDataForExtendforMapData(payload:any){
   let legend = document.querySelector('.green-box-legend') as HTMLElement;
   legend.style.display = 'none';
-this.isLoading = true;
- this.mapDataService.getSingleMachineMapViewDataForExtendView(payload).subscribe(data => {
-  this.isLoading = false;
-  this.clearMap();
-  let allPolylineCoordinates: [number, number][] = [];
-      data.mapData.roadTripLinePath.forEach((line:Line) =>{
-      const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-      const polyline = L.polyline(coordinates as any,{
-            color:"#7acdef" 
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-      });
-      data.mapData.harvestingPolygonPath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polygon = L.polygon(coordinates as any,{
-            color:"#ffd800",
-            fill:true
-        }).addTo(this.map);
-        this.polylines.push(polygon as any);
-        allPolylineCoordinates.push(coordinates as any);
-      });
-      data.mapData.harvestingLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#ffd800"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-      });
-      data.mapData.notHarvestingLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            const polyline = L.polyline(coordinates as any,{
-            color:"#E37056"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-      });
-      var zoomlevel = this.map.getZoom();
-        console.log("zoom level is " + zoomlevel);
-        if(zoomlevel > 16)
-        {
-          legend.style.display = 'inline-block';
-          data.mapData.dischargeLinePath.forEach((line:Line) =>{
-          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-          const polyline = L.polyline(coordinates as any,{
-            color:"#84b960"
-        }).addTo(this.map);
-        this.polylinesforDischarge.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-      });
-      } else if(zoomlevel<16){
-      legend.style.display = 'none';
-      this.polylinesforDischarge.forEach(polyline => {
-        this.map.removeLayer(polyline);
-        console.log("polylines remove");
-      });
-      this.polylinesforDischarge = [];
-    }
-  
-    data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-          const polyline = L.polyline(coordinates as any,{
-              color:"#84b960"
-          }).addTo(this.map);
-          this.polylines.push(polyline);
-          allPolylineCoordinates.push(coordinates as any);
-    });   
-    data.mapData.timelyGapLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#fd7e14"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });    
-   const customIcon = L.icon({
-    iconUrl: './assets/red-flag.png',
-    iconSize: [64, 64],
-    iconAnchor: [10, 64]
-  });
-
-
-  const markerdata = data.mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
-  const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
-  .addTo(this.map);
-  this.customMarkers.push(customMarker);
-
-
-  const label = L.divIcon({
-    className: 'label-icon',
-    html: `<div>${marker.markerLabel}</div>`,
-    iconSize: [64, 64], 
-    iconAnchor: [10, 55]
-  });
-
-  const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
-  .addTo(this.map);
-
-  this.customMarkers.push(labelMarker);
-  }); 
-
-  /* if (data.imageData.length > 0) {
-    this.markerClusterGroup = (L as any).markerClusterGroup({
-      iconCreateFunction: function (cluster:any) {
-        var markers = cluster.getAllChildMarkers();
-        var html = '<div class="circle"><span class="cluster-content">' + markers.length + '</span></div>';
-        return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
-    },
-    });
-    if (!this.imageControl) {
-      this.imageControl = (L.control as any).ImageControl({
-        position: 'topright',
-        markerClusterGroup: this.markerClusterGroup,
-      }).addTo(this.map);
-    }else{
-      this.imageControl.updateMarkerClusterGroup(this.markerClusterGroup);
-    }
-  } 
-  else{
-    if (this.imageControl) {
-      this.imageControl.remove();
-      this.imageControl = null;
-    }
-  }
-
-  if(data.imageData)
-  {
-      //this.markerClusterGroup.clearLayers();
-      var imagedata = data.imageData.forEach((image :any) =>{
-        const cameraType = image.cameraType;
-        const imagePath = image.path;
-        var tooltip = L.tooltip({
-          direction:'top',
-          permanent:true,
-          interactive:true,
-          offset:[-15,26],
-        })
-        .setLatLng([image.gpsLatitude, image.gpsLongitude])
-        .setContent(tooltipData(cameraType,imagePath));
-        const marker = L.marker([image.gpsLatitude, image.gpsLongitude],{
-          opacity:0
-        }).bindTooltip(tooltip).openTooltip();
-        this.markerClusterGroup.addLayer(marker);
-        marker.on('click', (e: any) => {
-          const target = e.originalEvent.target as HTMLElement;
-          if (target.classList.contains('tooltip-image')) {
-            this.selectedImage = image.path;
-            console.log(this.selectedImage);
+    this.isLoading = true;
+    setTimeout(() => {
+      this.mapDataService.getSingleMachineMapViewDataForExtendView(payload).subscribe(data => {
+        this.isLoading = false;
+          this.clearMap();
+          let allPolylineCoordinates: [number, number][] = [];
+              data.mapData.roadTripLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polyline = L.polyline(coordinates as any,{
+                    color:"#7acdef" 
+                }).addTo(this.map);
+                this.polylines.push(polyline);
+                allPolylineCoordinates.push(coordinates as any);
+              });
+              data.mapData.harvestingPolygonPath.forEach((line:Line) =>{
+                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                const polygon = L.polygon(coordinates as any,{
+                    color:"#ffd800",
+                    fill:true
+                }).addTo(this.map);
+                this.polylines.push(polygon as any);
+                allPolylineCoordinates.push(coordinates as any);
+              });
+              data.mapData.harvestingLinePath.forEach((line:Line) =>{
+                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                const polyline = L.polyline(coordinates as any,{
+                    color:"#ffd800"
+                }).addTo(this.map);
+                this.polylines.push(polyline);
+                allPolylineCoordinates.push(coordinates as any);
+              });
+              data.mapData.notHarvestingLinePath.forEach((line:Line) =>{
+                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                    const polyline = L.polyline(coordinates as any,{
+                    color:"#E37056"
+                }).addTo(this.map);
+                this.polylines.push(polyline);
+                allPolylineCoordinates.push(coordinates as any);
+              });
+              var zoomlevel = this.map.getZoom();
+                console.log("zoom level is " + zoomlevel);
+                if(zoomlevel > 16)
+                {
+                  legend.style.display = 'inline-block';
+                  data.mapData.dischargeLinePath.forEach((line:Line) =>{
+                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                  const polyline = L.polyline(coordinates as any,{
+                    color:"#84b960"
+                }).addTo(this.map);
+                this.polylinesforDischarge.push(polyline);
+                allPolylineCoordinates.push(coordinates as any);
+              });
+              } else if(zoomlevel<16){
+              legend.style.display = 'none';
+              this.polylinesforDischarge.forEach(polyline => {
+                this.map.removeLayer(polyline);
+                console.log("polylines remove");
+              });
+              this.polylinesforDischarge = [];
+            }
+          
+            data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                  const polyline = L.polyline(coordinates as any,{
+                      color:"#84b960"
+                  }).addTo(this.map);
+                  this.polylines.push(polyline);
+                  allPolylineCoordinates.push(coordinates as any);
+            });   
+            data.mapData.timelyGapLinePath.forEach((line:Line) =>{
+                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                const polyline = L.polyline(coordinates as any,{
+                    color:"#fd7e14"
+                }).addTo(this.map);
+                this.polylines.push(polyline);
+                allPolylineCoordinates.push(coordinates as any);
+            });    
+           const customIcon = L.icon({
+            iconUrl: './assets/red-flag.png',
+            iconSize: [64, 64],
+            iconAnchor: [10, 64]
+          });
+        
+        
+          const markerdata = data.mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
+          const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
+          .addTo(this.map);
+          this.customMarkers.push(customMarker);
+        
+        
+          const label = L.divIcon({
+            className: 'label-icon',
+            html: `<div>${marker.markerLabel}</div>`,
+            iconSize: [64, 64], 
+            iconAnchor: [10, 55]
+          });
+        
+          const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+          .addTo(this.map);
+        
+          this.customMarkers.push(labelMarker);
+          }); 
+        
+          /* if (data.imageData.length > 0) {
+            this.markerClusterGroup = (L as any).markerClusterGroup({
+              iconCreateFunction: function (cluster:any) {
+                var markers = cluster.getAllChildMarkers();
+                var html = '<div class="circle"><span class="cluster-content">' + markers.length + '</span></div>';
+                return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
+            },
+            });
+            if (!this.imageControl) {
+              this.imageControl = (L.control as any).ImageControl({
+                position: 'topright',
+                markerClusterGroup: this.markerClusterGroup,
+              }).addTo(this.map);
+            }else{
+              this.imageControl.updateMarkerClusterGroup(this.markerClusterGroup);
+            }
+          } 
+          else{
+            if (this.imageControl) {
+              this.imageControl.remove();
+              this.imageControl = null;
+            }
           }
-        });
-      });
-      //this.map.addLayer(this.markerClusterGroup);
-  }else{
-  }  */  if(this.flag == 1){
-    if (allPolylineCoordinates.length > 0) {
-      this.flag = 0;
-      const bounds = L.latLngBounds(allPolylineCoordinates);
-      this.map.fitBounds(bounds);
-      const center = bounds.getCenter();
-      if (!isNaN(center.lat) && !isNaN(center.lng)) {
-        this.homeControl.setCenter(center);
-        this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
-        console.log("Map data fit correctly!");
-      }
-    } 
-  } 
-
- console.log("data loaded successfully!");
-}, error => {
-  console.error('Error fetching map data', error);
-  this.isLoading = false;
-}); 
+        
+          if(data.imageData)
+          {
+              //this.markerClusterGroup.clearLayers();
+              var imagedata = data.imageData.forEach((image :any) =>{
+                const cameraType = image.cameraType;
+                const imagePath = image.path;
+                var tooltip = L.tooltip({
+                  direction:'top',
+                  permanent:true,
+                  interactive:true,
+                  offset:[-15,26],
+                })
+                .setLatLng([image.gpsLatitude, image.gpsLongitude])
+                .setContent(tooltipData(cameraType,imagePath));
+                const marker = L.marker([image.gpsLatitude, image.gpsLongitude],{
+                  opacity:0
+                }).bindTooltip(tooltip).openTooltip();
+                this.markerClusterGroup.addLayer(marker);
+                marker.on('click', (e: any) => {
+                  const target = e.originalEvent.target as HTMLElement;
+                  if (target.classList.contains('tooltip-image')) {
+                    this.selectedImage = image.path;
+                    console.log(this.selectedImage);
+                  }
+                });
+              });
+              //this.map.addLayer(this.markerClusterGroup);
+          }else{
+          }  */  if(this.flag == 1){
+            if (allPolylineCoordinates.length > 0) {
+              this.flag = 0;
+              const bounds = L.latLngBounds(allPolylineCoordinates);
+              this.map.fitBounds(bounds);
+              const center = bounds.getCenter();
+              if (!isNaN(center.lat) && !isNaN(center.lng)) {
+                this.homeControl.setCenter(center);
+                this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
+                console.log("Map data fit correctly!");
+              }
+            } 
+          } 
+         console.log("data loaded successfully!");
+        }, error => {
+          console.error('Error fetching map data', error);
+          this.isLoading = false;
+        }); 
+    }, 2000);
 }
 private createPayloadForExtend(bounds: L.LatLngBounds,startDate:string,endDate:string){
   return {
@@ -815,185 +821,187 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
       let legend = document.querySelector('.green-box-legend') as HTMLElement;
       legend.style.display = 'none';
     this.isLoading = true;
-     this.mapDataService.getSingleMachineMapViewDataForExtendView(payload).subscribe(data => {
-      this.isLoading = false;
-        this.clearMap();
-      let allPolylineCoordinates: [number, number][] = [];
-          data.mapData.roadTripLinePath.forEach((line:Line) =>{
-          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-          const polyline = L.polyline(coordinates as any,{
-                color:"#7acdef" 
-            }).addTo(this.map);
-            this.polylines.push(polyline);
-            allPolylineCoordinates.push(coordinates as any);
-          });
-          data.mapData.harvestingPolygonPath.forEach((line:Line) =>{
-            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            const polygon = L.polygon(coordinates as any,{
-                color:"#ffd800",
-            }).addTo(this.map);
-            this.polylines.push(polygon as any);
-            allPolylineCoordinates.push(coordinates as any);
-          });
-          data.mapData.harvestingLinePath.forEach((line:Line) =>{
+    setTimeout(() => {
+      this.mapDataService.getSingleMachineMapViewDataForExtendView(payload).subscribe(data => {
+        this.isLoading = false;
+          this.clearMap();
+        let allPolylineCoordinates: [number, number][] = [];
+            data.mapData.roadTripLinePath.forEach((line:Line) =>{
             const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
             const polyline = L.polyline(coordinates as any,{
-                color:"#ffd800"
-            }).addTo(this.map);
-            this.polylines.push(polyline);
-            allPolylineCoordinates.push(coordinates as any);
-          });
-          data.mapData.notHarvestingLinePath.forEach((line:Line) =>{
-            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                const polyline = L.polyline(coordinates as any,{
-                color:"#E37056"
-            }).addTo(this.map);
-            this.polylines.push(polyline);
-            allPolylineCoordinates.push(coordinates as any);
-          });
-
-          var zoomlevel = this.map.getZoom();
-            console.log("zoom level is " + zoomlevel);
-            if(zoomlevel > 16)
-            {
-              legend.style.display = 'inline-block';
-              data.mapData.dischargeLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-              const polyline = L.polyline(coordinates as any,{
-              color:"#84b960"
-            }).addTo(this.map);
-            this.polylinesforDischarge.push(polyline);
-            allPolylineCoordinates.push(coordinates as any);
-          });
-          }/*  else if(zoomlevel<16){
-          legend.style.display = 'none';
-          this.polylinesforDischarge.forEach(polyline => {
-            this.map.removeLayer(polyline);
-            console.log("polylines remove");
-          });
-          this.polylinesforDischarge = []; */
-        //}
-      
-        data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-              const polyline = L.polyline(coordinates as any,{
-                  color:"#84b960"
+                  color:"#7acdef" 
               }).addTo(this.map);
               this.polylines.push(polyline);
               allPolylineCoordinates.push(coordinates as any);
-        });   
-        data.mapData.timelyGapLinePath.forEach((line:Line) =>{
-            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            const polyline = L.polyline(coordinates as any,{
-                color:"#fd7e14"
-            }).addTo(this.map);
-            this.polylines.push(polyline);
-            allPolylineCoordinates.push(coordinates as any);
-        });  
-          
-
-       const customIcon = L.icon({
-        iconUrl: './assets/red-flag.png',
-        iconSize: [64, 64],
-        iconAnchor: [10, 64]
-        });
-  
-  
-      const markerdata = data.mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
-      const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
-      .addTo(this.map);
-      this.customMarkers.push(customMarker);
-  
-  
-      const label = L.divIcon({
-        className: 'label-icon',
-        html: `<div>${marker.markerLabel}</div>`,
-        iconSize: [64, 64], 
-        iconAnchor: [10, 55]
-      });
-  
-      const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
-      .addTo(this.map);
-  
-      this.customMarkers.push(labelMarker);
-      }); 
-
-        if(this.flag==0){
-          if (allPolylineCoordinates.length > 0) {
-            this.flag=1;
-            console.log("enter the fit bound code");
-            const bounds = L.latLngBounds(allPolylineCoordinates);
-            this.map.fitBounds(bounds);
-            const center = bounds.getCenter();
-            if (!isNaN(center.lat) && !isNaN(center.lng)) {
-              this.homeControl.setCenter(center);
-              this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
-            }
-          }
-        }
-        
-      
-        /*if(this.extendControl==false){
-          this.map.on("zoomend",()=>{
-            var zoomlevel = this.map.getZoom();
-            console.log("zoom level is " + zoomlevel);
-            if(zoomlevel > 16)
-            {
-              //legend.style.display='inline-block';
-              data.mapData.dischargeLinePath.forEach((line:Line) =>{
+            });
+            data.mapData.harvestingPolygonPath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polygon = L.polygon(coordinates as any,{
+                  color:"#ffd800",
+              }).addTo(this.map);
+              this.polylines.push(polygon as any);
+              allPolylineCoordinates.push(coordinates as any);
+            });
+            data.mapData.harvestingLinePath.forEach((line:Line) =>{
               const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
               const polyline = L.polyline(coordinates as any,{
+                  color:"#ffd800"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+            });
+            data.mapData.notHarvestingLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                  const polyline = L.polyline(coordinates as any,{
+                  color:"#E37056"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+            });
+  
+            var zoomlevel = this.map.getZoom();
+              console.log("zoom level is " + zoomlevel);
+              if(zoomlevel > 16)
+              {
+                legend.style.display = 'inline-block';
+                data.mapData.dischargeLinePath.forEach((line:Line) =>{
+                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                const polyline = L.polyline(coordinates as any,{
+                color:"#84b960"
+              }).addTo(this.map);
+              this.polylinesforDischarge.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+            });
+            }/*  else if(zoomlevel<16){
+            legend.style.display = 'none';
+            this.polylinesforDischarge.forEach(polyline => {
+              this.map.removeLayer(polyline);
+              console.log("polylines remove");
+            });
+            this.polylinesforDischarge = []; */
+          //}
+        
+          data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                const polyline = L.polyline(coordinates as any,{
                     color:"#84b960"
                 }).addTo(this.map);
-                this.polylinesforDischarge.push(polyline);
-               allPolylineCoordinates.push(coordinates as any);
-              });
+                this.polylines.push(polyline);
+                allPolylineCoordinates.push(coordinates as any);
+          });   
+          data.mapData.timelyGapLinePath.forEach((line:Line) =>{
+              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+              const polyline = L.polyline(coordinates as any,{
+                  color:"#fd7e14"
+              }).addTo(this.map);
+              this.polylines.push(polyline);
+              allPolylineCoordinates.push(coordinates as any);
+          });  
+            
+  
+         const customIcon = L.icon({
+          iconUrl: './assets/red-flag.png',
+          iconSize: [64, 64],
+          iconAnchor: [10, 64]
+          });
+    
+    
+        const markerdata = data.mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
+        const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
+        .addTo(this.map);
+        this.customMarkers.push(customMarker);
+    
+    
+        const label = L.divIcon({
+          className: 'label-icon',
+          html: `<div>${marker.markerLabel}</div>`,
+          iconSize: [64, 64], 
+          iconAnchor: [10, 55]
+        });
+    
+        const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+        .addTo(this.map);
+    
+        this.customMarkers.push(labelMarker);
+        }); 
+            if(this.flag==0)
+            {
+              if (allPolylineCoordinates.length > 0) {
+                this.flag=1;
+                console.log("enter the fit bound code");
+                const bounds = L.latLngBounds(allPolylineCoordinates);
+                this.map.fitBounds(bounds);
+                const center = bounds.getCenter();
+                if (!isNaN(center.lat) && !isNaN(center.lng)) {
+                  this.homeControl.setCenter(center);
+                  this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
+                }
+            }
+          }
           
-              data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                  const polyline = L.polyline(coordinates as any,{
+        
+          /*if(this.extendControl==false){
+            this.map.on("zoomend",()=>{
+              var zoomlevel = this.map.getZoom();
+              console.log("zoom level is " + zoomlevel);
+              if(zoomlevel > 16)
+              {
+                //legend.style.display='inline-block';
+                data.mapData.dischargeLinePath.forEach((line:Line) =>{
+                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                const polyline = L.polyline(coordinates as any,{
                       color:"#84b960"
                   }).addTo(this.map);
                   this.polylinesforDischarge.push(polyline);
-                  allPolylineCoordinates.push(coordinates as any);
-              });
-            }else if(zoomlevel<16){
-                //legend.style.display = 'none';
-                this.polylinesforDischarge.forEach(polyline => {
-                    this.map.removeLayer(polyline);
-                    console.log("polylines remove");
+                 allPolylineCoordinates.push(coordinates as any);
                 });
-                this.polylinesforDischarge = [];
-            }
-          });
+            
+                data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+                    const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                    const polyline = L.polyline(coordinates as any,{
+                        color:"#84b960"
+                    }).addTo(this.map);
+                    this.polylinesforDischarge.push(polyline);
+                    allPolylineCoordinates.push(coordinates as any);
+                });
+              }else if(zoomlevel<16){
+                  //legend.style.display = 'none';
+                  this.polylinesforDischarge.forEach(polyline => {
+                      this.map.removeLayer(polyline);
+                      console.log("polylines remove");
+                  });
+                  this.polylinesforDischarge = [];
+              }
+            });
+          } */
+        /* this.clearMap();
+        let allPolylineCoordinates: [number, number][] = [];
+    
+        this.addPolylines(data.mapData.roadTripLinePath, "#7acdef", allPolylineCoordinates);
+        this.addPolylines(data.mapData.harvestingLinePath, "#ffd800", allPolylineCoordinates);
+        this.addPolylines(data.mapData.notHarvestingLinePath, "#E37056", allPolylineCoordinates);
+        this.addPolylines(data.mapData.dischargeLinePath, "#84b960", allPolylineCoordinates);
+        this.addPolylines(data.mapData.dischargeWithoutCircleLinePath, "#84b960", allPolylineCoordinates);
+        this.addPolylines(data.mapData.timelyGapLinePath, "#fd7e14", allPolylineCoordinates);
+        this.addPolygons(data.mapData.harvestingPolygonPath, "#ffd800", allPolylineCoordinates);
+    
+        this.addMarkers(data.mapMarkers.harvestingMapMarkers);
+        if (allPolylineCoordinates.length > 0) {
+          const bounds = L.latLngBounds(allPolylineCoordinates);
+          this.map.fitBounds(bounds);
+          const center = bounds.getCenter();
+          if (!isNaN(center.lat) && !isNaN(center.lng)) {
+            this.homeControl.setCenter(center);
+            this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
+          }
         } */
-      /* this.clearMap();
-      let allPolylineCoordinates: [number, number][] = [];
+       console.log("data loaded successfully!");
   
-      this.addPolylines(data.mapData.roadTripLinePath, "#7acdef", allPolylineCoordinates);
-      this.addPolylines(data.mapData.harvestingLinePath, "#ffd800", allPolylineCoordinates);
-      this.addPolylines(data.mapData.notHarvestingLinePath, "#E37056", allPolylineCoordinates);
-      this.addPolylines(data.mapData.dischargeLinePath, "#84b960", allPolylineCoordinates);
-      this.addPolylines(data.mapData.dischargeWithoutCircleLinePath, "#84b960", allPolylineCoordinates);
-      this.addPolylines(data.mapData.timelyGapLinePath, "#fd7e14", allPolylineCoordinates);
-      this.addPolygons(data.mapData.harvestingPolygonPath, "#ffd800", allPolylineCoordinates);
-  
-      this.addMarkers(data.mapMarkers.harvestingMapMarkers);
-      if (allPolylineCoordinates.length > 0) {
-        const bounds = L.latLngBounds(allPolylineCoordinates);
-        this.map.fitBounds(bounds);
-        const center = bounds.getCenter();
-        if (!isNaN(center.lat) && !isNaN(center.lng)) {
-          this.homeControl.setCenter(center);
-          this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
-        }
-      } */
-     console.log("data loaded successfully!");
-
-    }, error => {
-      console.error('Error fetching map data', error);
-      this.isLoading = false;
-    }); 
+      }, error => {
+        console.error('Error fetching map data', error);
+        this.isLoading = false;
+      });
+    }, 3000); 
   }
 
   /* private addPolylines(linePaths: any[], color: string, allPolylineCoordinates: [number, number][]) {

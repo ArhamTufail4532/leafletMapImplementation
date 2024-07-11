@@ -27,7 +27,9 @@
                 <h2 class="singleMapHeading">MAP</h2>
                 <h2 class="lastDatePosition">last know position since 4/24/2024, 6:29:57 PM</h2>
          </div>-->
-         <mat-spinner *ngIf="isLoading"></mat-spinner>
+         <div *ngIf="isLoading" class="fullscreen-overlay">
+            <mat-spinner *ngIf="isLoading"></mat-spinner>
+         </div>
         <div id="leafletMap"></div>
             <div class="map-info">
                 <ul class="component ng-star-inserted">
