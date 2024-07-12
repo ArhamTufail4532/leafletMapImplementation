@@ -285,8 +285,12 @@ style attribute {
   background-image: url('./assets/hide-machine.svg');
     background-size: 26px 26px;
     background-repeat: no-repeat;
+} 
+.clusterControlImage{
+  background-image: url('./assets/show-machine.svg');
+    background-size: 26px 26px;
+    background-repeat: no-repeat;
 }
-
 .leaflet-control.custom-Control-Window {
   padding: 5px -1px;
   border-radius: 4px;
@@ -294,11 +298,11 @@ style attribute {
 }
 
 
-a.custom-control-toggle:focus{
+/* a.custom-control-toggle:focus{
   background-image: url('./assets/show-machine.svg');
     background-size: 26px 26px;
     background-repeat: no-repeat;
-}
+} */
 
 .fixedViewControlToggel.active {
   background-image: url('./assets/pinSelect1.svg');

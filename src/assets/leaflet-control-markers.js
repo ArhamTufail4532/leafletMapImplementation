@@ -11,6 +11,7 @@ L.Control.customControl = L.Control.extend({
         link.title = 'Toggle Markers';
         var markers = this.options.markers;  // Get the markers from options
 
+
         // Example functionality: Toggle visibility of markers
         L.DomEvent.on(link, 'click', function (e) {
             L.DomEvent.stopPropagation(e); // Prevent map click event from firing
@@ -18,8 +19,10 @@ L.Control.customControl = L.Control.extend({
 
             if (map.hasLayer(markers)) {
                 map.removeLayer(markers);
+                link.classList.remove('clusterControlImage');
             } else {
                 map.addLayer(markers);
+                link.classList.add('clusterControlImage');
             }
         });
 

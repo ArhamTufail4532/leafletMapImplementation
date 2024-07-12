@@ -48,6 +48,7 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     //allPolylineCoordinatesforDischarge: [number, number][] = [];
     polylinesforDischarge: L.Polyline[] = [];
     public minDate: Object = {};
+    zoomLevelSet: boolean = false;
     public maxDate: Object =  {};
     private polylines: L.Polyline[] = [];
     private customMarkers : L.Marker[] = [];
@@ -185,8 +186,9 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     if(this.dateRangeSelected==false)
     {
       this.getSingleMachineMapViewData();
-    }else{
+    }/* else{
       if(this._singleMechineData.getStartDate() && this._singleMechineData.getEndDate()){
+        console.log("data picker data loaded-----");
           const bounds = this.map.getBounds();
           const payload = this.createPayloadForExtend(bounds,this._singleMechineData.getStartDate(),this._singleMechineData.getEndDate());
           this.fetchAndUpdateMapDataForExtendforMapData(payload);
@@ -195,8 +197,8 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
       }else{
         console.log("no data in the service!");
       }
-    }  
-  }
+    }  */
+  } 
   removeMapEventListeners(): void {
    // this.map.off('moveend', this.onMapMoveEnd);
    // this.map.off('zoomend', this.onMapZoomEnd);
@@ -276,12 +278,18 @@ onDateRangeChange(event: any): void {
     const endDateDay = endDate.getDate().toString().padStart(2, '0');
     const endDateFormate = `${endDateYear}-${endDateMonth}-${endDateDay}T00:00:00.000Z`;
     this.clearMapData();
-    this.getSingleMachineMapViewDataForExtend(startDateFormate,endDateFormate);
     this._singleMechineData.setStartDate(startDateFormate);
     this._singleMechineData.setEndDate(endDateFormate);
+    this.getSingleMachineMapViewDataForExtend(startDateFormate,endDateFormate);
+    this.map.on('moveend', ()=> this.loadDateRangeData());
     //this.fetchMapDataForExdendView(startDateFormate,endDateFormate);
 }
 
+loadDateRangeData(){
+  const bounds = this.map.getBounds();
+  const payload = this.createPayloadForExtend(bounds,this._singleMechineData.getStartDate(),this._singleMechineData.getEndDate());
+  this.fetchAndUpdateMapDataForExtendforMapData(payload);
+}
 onDateRangeChangeForMapView(event : any):void{
   this.dateRangeSelected = true;
   const startDate = event.startDate;
@@ -301,9 +309,151 @@ onDateRangeChangeForMapView(event : any):void{
     this.getMultipleMachineWithMultipleDates(startDateFormate,endDateFormate);
     if (this.showClusterControl) {
        this.map.on('moveend', () =>{
-        this.getMultipleMachineWithMultipleDates(startDateFormate,endDateFormate);
+        this.getMultipleMachineForMapView(startDateFormate,endDateFormate);
       });
+    } 
+}
+
+private getMultipleMachineForMapView(startDate:string,endDate:string) {
+  const bounds = this.map.getBounds();
+  const payload = this.createPayloadForMapView(bounds,startDate,endDate);
+  this.FetchDateForMapViewMultipleMachines(payload);
+}
+
+FetchDateForMapViewMultipleMachines(payload:any){
+  this.isLoading = true;
+    let legend = document.querySelector('.green-box-legend') as HTMLElement;
+    legend.style.display = 'none';
+    const allCoordinates: [number, number][] = [];
+    if (this._markers) {
+      this._markers.clearLayers();
     }
+    this.clearMap();
+    setTimeout(() => {
+      this.mapDataService.getMultipleMachineWithMultipleDates(payload).subscribe(data => {
+        this.isLoading = false;
+        const mapInfoWindow = data.mapInfoWindowDto.harvestingMapInfoWindows;
+          mapInfoWindow.forEach((infoWindow: { mapInfoWindowCoordinate: { lat: any; lng: any; }; infoWindowContent: any; }) => {
+          const{ lat , lng } = infoWindow.mapInfoWindowCoordinate;
+          var tooltip = L.tooltip({
+            direction:'top',
+            permanent:true,
+            interactive:true,
+            offset:[-15,26],
+          })
+          .setLatLng([lat, lng])
+          .setContent(popupData(infoWindow.infoWindowContent));
+    
+          var marker = L.marker([lat, lng],{
+            opacity:0,
+          });
+          marker.bindTooltip(tooltip);
+          marker.openTooltip();
+          this._markers.addLayer(marker);
+          });
+          /* if(this.zoomLevelSet==false){
+            console.log(this.zoomLevelSet);
+            this.map.setView(this._markers.getBounds().getCenter(), 18); 
+            this.zoomLevelSet = true;
+          }else{
+
+          } */
+        this.map.addLayer(this._markers);
+        let allPolylineCoordinates: [number, number][] = [];
+        data.machinePolylineDto.roadTripLinePath.forEach((line: { coordinates: any[]; })=>{
+          const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+          const polyline = L.polyline(coordinates as any,{
+            color:"#7acdef" 
+          }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+        });
+        data.machinePolylineDto.harvestingLinePath.forEach((line: { coordinates: any[]; })=>{
+          const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+          const polyline = L.polyline(coordinates as any,{
+            color:"#ffd800" 
+          }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+        });
+        data.machinePolylineDto.notHarvestingLinePath.forEach((line: { coordinates: any[]; })=>{
+          const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+          const polyline = L.polyline(coordinates as any,{
+            color:"#E37056" 
+          }).addTo(this.map);
+        this.polylines.push(polyline);
+        allPolylineCoordinates.push(coordinates as any);
+        });
+         data.machinePolylineDto.harvestingPolygonPath.forEach((line: { coordinates: any[]; })=>{
+          const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+          const polygon = (L.polygon as any)(coordinates as any,{
+            color:"#ffd800",
+            fillColor:"#ffd800",
+            fillOpacity: 1
+        }).addTo(this.map);
+        this.polylines.push(polygon);
+          allPolylineCoordinates.push(coordinates as any);
+        }); 
+
+
+        let zoom = this.map.getZoom();
+        console.log("zoom value"+zoom);
+        if(zoom>16){
+          //legend.style.display = 'inline-block !important';
+          legend.setAttribute('style', 'display: inline-block !important;');
+          data.machinePolylineDto.dischargeLinePath.forEach((line: { coordinates: any[]; })=>{
+            const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+            const polyline = (L.polyline as any)(coordinates as any,{
+              color:"#84b960",
+              fillColor:"#84b960",
+              fillOpacity: 1
+          }).addTo(this.map);
+          this.polylinesforDischarge.push(polyline);
+          allPolylineCoordinates.push(coordinates as any);
+          });
+          data.machinePolylineDto.dischargeWithoutCircleLinePath.forEach((line: { coordinates: any[]; })=>{
+            const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+            const polyline = (L.polyline as any)(coordinates as any,{
+              color:"#84b960",
+              fillColor:"#84b960",
+              fillOpacity: 1
+          }).addTo(this.map);
+          this.polylines.push(polyline);
+            allPolylineCoordinates.push(coordinates as any);
+          });
+        }else{
+          legend.style.display = 'none';
+        }
+        
+  
+        const customIcon = L.icon({
+          iconUrl: './assets/red-flag.png',
+          iconSize: [64, 64], 
+          iconAnchor: [10, 64]
+        });
+    
+        const Markerdata = data.mapMarkerDto.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: any; }) =>{
+          const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
+          .addTo(this.map);
+          this.customMarkers.push(customMarker);
+    
+          const label = L.divIcon({
+            className: 'label-icon',
+            html: `<div>${marker.markerLabel}</div>`,
+            iconSize: [64, 64], // Adjusted iconSize if needed
+            iconAnchor: [10, 55] // Example adjustment for label position
+          });
+    
+          const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
+            .addTo(this.map);
+    
+            this.customMarkers.push(labelMarker);
+        });
+    }, error => {
+    console.error('Error fetching map data', error);
+    this.isLoading = false;
+    });
+    }, 1000);
 }
 
 private getMultipleMachineWithMultipleDates(startDate:string,endDate:string) {
@@ -549,7 +699,15 @@ private fetchAndUpdateMapDataForExtendforMapData(payload:any){
                 }).addTo(this.map);
                 this.polylinesforDischarge.push(polyline);
                 allPolylineCoordinates.push(coordinates as any);
-              });
+                  });
+                  data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+                    const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                    const polyline = L.polyline(coordinates as any,{
+                        color:"#84b960"
+                    }).addTo(this.map);
+                    this.polylinesforDischarge.push(polyline);
+                    allPolylineCoordinates.push(coordinates as any);
+                  });
               } else if(zoomlevel<16){
               legend.style.display = 'none';
               this.polylinesforDischarge.forEach(polyline => {
@@ -557,16 +715,7 @@ private fetchAndUpdateMapDataForExtendforMapData(payload:any){
                 console.log("polylines remove");
               });
               this.polylinesforDischarge = [];
-            }
-          
-            data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                  const polyline = L.polyline(coordinates as any,{
-                      color:"#84b960"
-                  }).addTo(this.map);
-                  this.polylines.push(polyline);
-                  allPolylineCoordinates.push(coordinates as any);
-            });   
+            }   
             data.mapData.timelyGapLinePath.forEach((line:Line) =>{
                 const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
                 const polyline = L.polyline(coordinates as any,{
@@ -653,9 +802,8 @@ private fetchAndUpdateMapDataForExtendforMapData(payload:any){
               });
               //this.map.addLayer(this.markerClusterGroup);
           }else{
-          }  */  if(this.flag == 1){
-            if (allPolylineCoordinates.length > 0) {
-              this.flag = 0;
+          }  */  
+            /* if (allPolylineCoordinates.length > 0) {
               const bounds = L.latLngBounds(allPolylineCoordinates);
               this.map.fitBounds(bounds);
               const center = bounds.getCenter();
@@ -664,8 +812,7 @@ private fetchAndUpdateMapDataForExtendforMapData(payload:any){
                 this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
                 console.log("Map data fit correctly!");
               }
-            } 
-          } 
+          }  */
          console.log("data loaded successfully!");
         }, error => {
           console.error('Error fetching map data', error);
@@ -883,7 +1030,15 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
               }).addTo(this.map);
               this.polylinesforDischarge.push(polyline);
               allPolylineCoordinates.push(coordinates as any);
-            });
+                });
+                data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
+                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
+                  const polyline = L.polyline(coordinates as any,{
+                      color:"#84b960"
+                  }).addTo(this.map);
+                  this.polylines.push(polyline);
+                  allPolylineCoordinates.push(coordinates as any);
+            }); 
             }/*  else if(zoomlevel<16){
             legend.style.display = 'none';
             this.polylinesforDischarge.forEach(polyline => {
@@ -891,16 +1046,7 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
               console.log("polylines remove");
             });
             this.polylinesforDischarge = []; */
-          //}
-        
-          data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                const polyline = L.polyline(coordinates as any,{
-                    color:"#84b960"
-                }).addTo(this.map);
-                this.polylines.push(polyline);
-                allPolylineCoordinates.push(coordinates as any);
-          });   
+          //}  
           data.mapData.timelyGapLinePath.forEach((line:Line) =>{
               const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
               const polyline = L.polyline(coordinates as any,{
@@ -1085,6 +1231,8 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
 
   FetchDataForMapView(payload:any){
     this.isLoading = true;
+    let legend = document.querySelector('.green-box-legend') as HTMLElement;
+    legend.style.display = 'none';
     const allCoordinates: [number, number][] = [];
     if (this._markers) {
       this._markers.clearLayers();
@@ -1106,13 +1254,19 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
           .setContent(popupData(infoWindow.infoWindowContent));
     
           var marker = L.marker([lat, lng],{
-            opacity:0
+            opacity:0,
           });
           marker.bindTooltip(tooltip);
           marker.openTooltip();
           this._markers.addLayer(marker);
           });
-  
+          /* if(this.zoomLevelSet==false){
+            console.log(this.zoomLevelSet);
+            this.map.setView(this._markers.getBounds().getCenter(), 18); 
+            this.zoomLevelSet = true;
+          }else{
+
+          } */
         this.map.addLayer(this._markers);
         let allPolylineCoordinates: [number, number][] = [];
         data.machinePolylineDto.roadTripLinePath.forEach((line: { coordinates: any[]; })=>{
@@ -1149,8 +1303,13 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
         this.polylines.push(polygon);
           allPolylineCoordinates.push(coordinates as any);
         }); 
+
+
         let zoom = this.map.getZoom();
+        console.log("zoom value"+zoom);
         if(zoom>16){
+          //legend.style.display = 'inline-block !important';
+          legend.setAttribute('style', 'display: inline-block !important;');
           data.machinePolylineDto.dischargeLinePath.forEach((line: { coordinates: any[]; })=>{
             const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
             const polyline = (L.polyline as any)(coordinates as any,{
@@ -1161,17 +1320,20 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
           this.polylinesforDischarge.push(polyline);
           allPolylineCoordinates.push(coordinates as any);
           });
+          data.machinePolylineDto.dischargeWithoutCircleLinePath.forEach((line: { coordinates: any[]; })=>{
+            const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+            const polyline = (L.polyline as any)(coordinates as any,{
+              color:"#84b960",
+              fillColor:"#84b960",
+              fillOpacity: 1
+          }).addTo(this.map);
+          this.polylines.push(polyline);
+            allPolylineCoordinates.push(coordinates as any);
+          });
+        }else{
+          legend.style.display = 'none';
         }
-        data.machinePolylineDto.dischargeWithoutCircleLinePath.forEach((line: { coordinates: any[]; })=>{
-          const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
-          const polyline = (L.polyline as any)(coordinates as any,{
-            color:"#84b960",
-            fillColor:"#84b960",
-            fillOpacity: 1
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-          allPolylineCoordinates.push(coordinates as any);
-        });
+        
   
         const customIcon = L.icon({
           iconUrl: './assets/red-flag.png',
@@ -1196,11 +1358,22 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
     
             this.customMarkers.push(labelMarker);
         });
+
+        if (allPolylineCoordinates.length > 0) {
+          const bounds = L.latLngBounds(allPolylineCoordinates);
+          this.map.fitBounds(bounds);
+          const center = bounds.getCenter();
+          if (!isNaN(center.lat) && !isNaN(center.lng)) {
+            this.homeControl.setCenter(center);
+            this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
+            console.log("Map data fit correctly!");
+          }
+        }
     }, error => {
     console.error('Error fetching map data', error);
     this.isLoading = false;
     });
-    }, 2000);
+    }, 1000);
 }
 
   onMapMove() {
@@ -2004,6 +2177,7 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
 
   private toggleLegend(selector: string) {
   const span = document.querySelector(selector);
+  console.log("span is"+span);
   if (span) {
       span.classList.toggle('hidden');
   }

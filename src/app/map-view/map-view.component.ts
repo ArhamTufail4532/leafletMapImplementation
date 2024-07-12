@@ -17,6 +17,6 @@ export class MapViewComponent { //selecting multiple Dates and Showing Multiple 
     this.fetchData();
   }
   fetchData():void{
-    this.legends.isUnloading = false;
+    
   }
 }
