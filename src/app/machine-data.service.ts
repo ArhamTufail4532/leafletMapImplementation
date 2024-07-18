@@ -57,4 +57,18 @@ export class MachineDataService {
   getEndDate(){
     return this.endDate;
   }
+
+
+  setStartDateforMapView(value : any):void {
+    this.startDate = value;
+  }
+  getStartDateforMapView(){
+    return this.startDate;
+  }
+  setEndDateforMapView(value : any): void {
+    this.endDate = value;
+  }
+  getEndDateforMapView(){
+    return this.endDate;
+  }
 }

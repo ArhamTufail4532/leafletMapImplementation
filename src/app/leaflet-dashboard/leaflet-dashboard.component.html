@@ -3,6 +3,9 @@
   <a mat-raised-button routerLinkActive="active" style="margin-right: 10px;" routerLink="/singleMachineView" routerLinkActiveOption="{exact:true}">SingleMachineView</a>
   <a mat-raised-button routerLinkActive="active" style="margin-right: 10px;" routerLink="/SingleMachineViewExtendComponent">Extend Map View</a>
   <a mat-raised-button routerLinkActive="active" style="margin-right: 10px;" routerLink="/MapViewComponent">Map View</a>
+  <div style="float: right; position: relative;right: 13px;">
+    <a mat-raised-button *ngIf="showButton" (click)="handleButtonClick()">login</a>
+  </div>
 </div>
 
 

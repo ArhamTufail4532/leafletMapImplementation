@@ -49,16 +49,21 @@ export class LeafletMapComponent implements OnInit, AfterViewInit {
     polylinesforDischarge: L.Polyline[] = [];
     public minDate: Object = {};
     zoomLevelSet: boolean = false;
+    private threshold: number = 0;
     public maxDate: Object =  {};
     private polylines: L.Polyline[] = [];
     private customMarkers : L.Marker[] = [];
     private imageControl: any;
     public _machineData : any;
+    imageContentData : string = "";
     private _markers : any;    
     currentDate : any;
     markerClusterGroup: any;
+    isZooming : boolean = false;
+    isMoving : boolean = false;
     data: any;
     flag: number = 0;
+    previousBounds : any;
     _lat : number = 52.096112667;
     _lng : number = 10.562562667;
     _machineName : string = "";
@@ -103,7 +108,7 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
       ],
       "Geohashes": [],
       "StartDateTime": formattedDate,
-      "ZoomLevel": 11,
+      "ZoomLevel": this.map.getZoom,
       "LegendStatus": [
           0,
           1,
@@ -171,7 +176,11 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
   ngAfterViewInit(): void {
     this.initMap();
       if(this.extendControl==false && this.showClusterControl==false){
-        this.map.on('moveend', ()=> this.onMapMoveEnd());
+        this.map.on('zoomstart', () => this.isZooming = true);
+        this.map.on('zoomend', this.debounce(() => this.onMapZoomEnd(), 2000));
+        this.map.on('moveend', this.debounce(() => this.onMapMoveEnd(), 2000));
+        this.map.on('movestart', () => this.isMoving = true);
+        //this.map.on('moveend', ()=> this.onMapMoveEnd());
         //this.map.on('zoomend', ()=> this.onMapZoomEnd());
         //this.getSingleMachineMapViewData();
       }
@@ -181,42 +190,33 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
       }
   }
 
-  private onMapMoveEnd() {
+  private onMapZoomEnd() { 
+    console.log("zoomend" + this.map.getZoom());
+    if(this.dateRangeSelected==false){
+      if(this.map.getZoom()==12 || this.map.getZoom()==14 || this.map.getZoom()==15 || this.map.getZoom()==18){
+      this.getSingleMachineMapViewData();
+      }else if(this.map.getZoom()<12){
+        this.getSingleMachineMapViewData();
+      }
+    }
+    setTimeout(() => {
+      this.isZooming = false;
+    }, 200);
+  }
 
+  private onMapMoveEnd() {
     if(this.dateRangeSelected==false)
     {
-      this.getSingleMachineMapViewData();
-    }/* else{
-      if(this._singleMechineData.getStartDate() && this._singleMechineData.getEndDate()){
-        console.log("data picker data loaded-----");
-          const bounds = this.map.getBounds();
-          const payload = this.createPayloadForExtend(bounds,this._singleMechineData.getStartDate(),this._singleMechineData.getEndDate());
-          this.fetchAndUpdateMapDataForExtendforMapData(payload);
-
-        console.log("data picker data loaded-----");
-      }else{
-        console.log("no data in the service!");
+      if(!this.isZooming){
+        console.log("this is move end event");
+        this.getSingleMachineMapViewData();
       }
-    }  */
+    }
+    this.isMoving=false;
   } 
   removeMapEventListeners(): void {
    // this.map.off('moveend', this.onMapMoveEnd);
    // this.map.off('zoomend', this.onMapZoomEnd);
-  }
-  private onMapZoomEnd() { 
-
-    if(this.dateRangeSelected==false){
-      this.getSingleMachineMapViewData();
-    }else{
-      if(this._singleMechineData.getStartDate() && this._singleMechineData.getEndDate()){
-          const bounds = this.map.getBounds();
-          const payload = this.createPayloadForExtend(bounds,this._singleMechineData.getStartDate(),this._singleMechineData.getEndDate());
-          this.fetchAndUpdateMapDataForExtendforMapData(payload);
-        console.log("data picker data loaded------");
-      }else{
-        console.log("no data in the service!");
-      }
-    }
   }
 
   private createPayload(bounds: L.LatLngBounds) {
@@ -251,6 +251,7 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     };
   }
 
+
   private clearMap() {
     // Remove previous polylines and markers
     this.polylines.forEach(polyline => polyline.remove());
@@ -258,6 +259,18 @@ constructor(private _singleMechineData: MachineDataService,private mapDataServic
     this.map.closePopup();
     this.polylines = [];
     this.customMarkers = [];
+}
+
+debounce(func: () => void, wait: number) {
+  let timeout: any;
+  return function executedFunction() {
+    const later = () => {
+      clearTimeout(timeout);
+      func(); // Call the original function directly without arguments
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 
 onDateRangeChange(event: any): void {
@@ -281,14 +294,47 @@ onDateRangeChange(event: any): void {
     this._singleMechineData.setStartDate(startDateFormate);
     this._singleMechineData.setEndDate(endDateFormate);
     this.getSingleMachineMapViewDataForExtend(startDateFormate,endDateFormate);
-    this.map.on('moveend', ()=> this.loadDateRangeData());
+    //this.map.on('moveend', ()=> this.loadDateRangeData());
+    this.map.on('zoomstart', () => this.isZooming = true);
+    this.map.on('zoomend', this.debounce(() => this.handleZoomEnd(), 2000));
+    this.map.on('movestart', () => this.isMoving = true);
+    this.map.on('moveend', this.debounce(() => this.handleMoveEnd(), 2000));
     //this.fetchMapDataForExdendView(startDateFormate,endDateFormate);
 }
 
-loadDateRangeData(){
+handleMoveEnd(){
+  const bounds = this.map.getBounds();
+    const payload = this.createPayloadForExtend(bounds,this._singleMechineData.getStartDate(),this._singleMechineData.getEndDate());
+    if(!this.isZooming){
+      console.log("this is move end method");
+      console.log("move end method runs... because" + this.isZooming);
+      this.fetchAndUpdateMapDataForExtendforMapData(payload);
+    }
+  this.isMoving=false;
+}
+
+handleZoomEnd(){
   const bounds = this.map.getBounds();
   const payload = this.createPayloadForExtend(bounds,this._singleMechineData.getStartDate(),this._singleMechineData.getEndDate());
-  this.fetchAndUpdateMapDataForExtendforMapData(payload);
+  console.log("this is zoom end method");
+  console.log("zoomend" + this.map.getZoom());
+  if(this.map.getZoom()==12 || this.map.getZoom()==15 || this.map.getZoom()==18){
+    this.fetchAndUpdateMapDataForExtendforMapData(payload);
+  }else if(this.map.getZoom()<12){
+    console.log("other bounds loaded!");
+    const bounds = this.map.getBounds();
+    const payload = this.createPayloadForExtend(bounds,this._singleMechineData.getStartDate(),this._singleMechineData.getEndDate());
+    this.fetchAndUpdateMapDataForExtendforMapData(payload);
+  } 
+   setTimeout(() => {
+    this.isZooming = false;
+  }, 200);
+}
+
+private getSingleMachineMapViewDataForExtend(startDate:string,endDate:string) {
+  const bounds = this.map.getBounds();
+  const payload = this.createPayloadForExtend(bounds,startDate,endDate);
+  this.fetchAndUpdateMapDataForExtend(payload);
 }
 onDateRangeChangeForMapView(event : any):void{
   this.dateRangeSelected = true;
@@ -306,21 +352,51 @@ onDateRangeChangeForMapView(event : any):void{
     const endDateDay = endDate.getDate().toString().padStart(2, '0');
     const endDateFormate = `${endDateYear}-${endDateMonth}-${endDateDay}T00:00:00.000Z`;
     this.clearMapData();
+    this._singleMechineData.setStartDateforMapView(startDateFormate);
+    this._singleMechineData.setEndDateforMapView(endDateFormate);
     this.getMultipleMachineWithMultipleDates(startDateFormate,endDateFormate);
-    if (this.showClusterControl) {
-       this.map.on('moveend', () =>{
-        this.getMultipleMachineForMapView(startDateFormate,endDateFormate);
-      });
-    } 
+       //this.map.on('moveend', () => this.getMultipleMachineForMapView());
+       this.map.on('zoomstart', () => this.isZooming = true);
+       this.map.on('zoomend', this.debounce(() => this.handleZoomEndForMapView(), 2000)); 
+       this.map.on('movestart', () => this.isMoving = true);
+       this.map.on('moveend', this.debounce(() => this.handleMoveEndForMapView(), 2000));
+       /* this.map.on('zoomstart', () => this.isZooming = true);
+       this.map.on('zoomend', this.debounce(() => this.handleZoomEnd(), 2000));
+       this.map.on('movestart', () => this.isMoving = true);
+       this.map.on('moveend', this.debounce(() => this.handleMoveEnd(), 2000)); */
 }
 
-private getMultipleMachineForMapView(startDate:string,endDate:string) {
+private getMultipleMachineWithMultipleDates(startDate:string,endDate:string) {
   const bounds = this.map.getBounds();
   const payload = this.createPayloadForMapView(bounds,startDate,endDate);
-  this.FetchDateForMapViewMultipleMachines(payload);
+  this.FetchDataForMapView(payload);
+}
+private handleMoveEndForMapView(){
+  const bounds = this.map.getBounds();
+  const payload = this.createPayloadForMapView(bounds,this._singleMechineData.getStartDateforMapView(),this._singleMechineData.getEndDateforMapView());
+  if(!this.isZooming){
+    this.FetchDataForMapViewMultipleMachines(payload);
+  }
+  this.isMoving=false;
+}
+private handleZoomEndForMapView(){
+  const bounds = this.map.getBounds();
+  console.log("this is zoom end method");
+  console.log("zoomend" + this.map.getZoom());
+  const payload = this.createPayloadForMapView(bounds,this._singleMechineData.getStartDateforMapView(),this._singleMechineData.getEndDateforMapView());
+  if(this.map.getZoom()==12 || this.map.getZoom()==15 || this.map.getZoom()==18){
+    this.FetchDataForMapViewMultipleMachines(payload);
+  }else if(this.map.getZoom()<12){
+    const bounds = this.map.getBounds();
+    const payload = this.createPayloadForMapView(bounds,this._singleMechineData.getStartDateforMapView(),this._singleMechineData.getEndDateforMapView());
+    this.FetchDataForMapViewMultipleMachines(payload);
+  }
+  setTimeout(() => {
+    this.isZooming = false;
+  }, 200);
 }
 
-FetchDateForMapViewMultipleMachines(payload:any){
+FetchDataForMapViewMultipleMachines(payload:any){
   this.isLoading = true;
     let legend = document.querySelector('.green-box-legend') as HTMLElement;
     legend.style.display = 'none';
@@ -328,10 +404,14 @@ FetchDateForMapViewMultipleMachines(payload:any){
     if (this._markers) {
       this._markers.clearLayers();
     }
-    this.clearMap();
-    setTimeout(() => {
+    //this.clearMap();
+    //setTimeout(() => {
       this.mapDataService.getMultipleMachineWithMultipleDates(payload).subscribe(data => {
         this.isLoading = false;
+        if (this._markers) {
+          this._markers.clearLayers();
+        }
+        this.clearMap();
         const mapInfoWindow = data.mapInfoWindowDto.harvestingMapInfoWindows;
           mapInfoWindow.forEach((infoWindow: { mapInfoWindowCoordinate: { lat: any; lng: any; }; infoWindowContent: any; }) => {
           const{ lat , lng } = infoWindow.mapInfoWindowCoordinate;
@@ -368,6 +448,17 @@ FetchDateForMapViewMultipleMachines(payload:any){
         this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
         });
+
+        data.machinePolylineDto.harvestingPolygonPath.forEach((line: { coordinates: any[]; })=>{
+          const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
+          const polygon = (L.polygon as any)(coordinates as any,{
+            color:"#ffd800",
+            fillColor:"#ffd800",
+            fillOpacity: 1
+        }).addTo(this.map);
+        this.polylines.push(polygon);
+          allPolylineCoordinates.push(coordinates as any);
+        });
         data.machinePolylineDto.harvestingLinePath.forEach((line: { coordinates: any[]; })=>{
           const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
           const polyline = L.polyline(coordinates as any,{
@@ -384,24 +475,16 @@ FetchDateForMapViewMultipleMachines(payload:any){
         this.polylines.push(polyline);
         allPolylineCoordinates.push(coordinates as any);
         });
-         data.machinePolylineDto.harvestingPolygonPath.forEach((line: { coordinates: any[]; })=>{
-          const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
-          const polygon = (L.polygon as any)(coordinates as any,{
-            color:"#ffd800",
-            fillColor:"#ffd800",
-            fillOpacity: 1
-        }).addTo(this.map);
-        this.polylines.push(polygon);
-          allPolylineCoordinates.push(coordinates as any);
-        }); 
+          
 
 
         let zoom = this.map.getZoom();
         console.log("zoom value"+zoom);
         if(zoom>16){
-          //legend.style.display = 'inline-block !important';
-          legend.setAttribute('style', 'display: inline-block !important;');
-          data.machinePolylineDto.dischargeLinePath.forEach((line: { coordinates: any[]; })=>{
+          const bound = this.map.getBounds();
+          this.mapDataService.getLegendData(this.createPayloadForLegend(bound,this._singleMechineData.getStartDateforMapView(),this._singleMechineData.getEndDateforMapView())).subscribe(data => {
+            legend.setAttribute('style', 'display: inline-block !important;');
+          data.dischargeLinePath.forEach((line: { coordinates: any[]; })=>{
             const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
             const polyline = (L.polyline as any)(coordinates as any,{
               color:"#84b960",
@@ -411,18 +494,26 @@ FetchDateForMapViewMultipleMachines(payload:any){
           this.polylinesforDischarge.push(polyline);
           allPolylineCoordinates.push(coordinates as any);
           });
-          data.machinePolylineDto.dischargeWithoutCircleLinePath.forEach((line: { coordinates: any[]; })=>{
+          data.dischargeWithoutCircleLinePath.forEach((line: { coordinates: any[]; })=>{
             const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
             const polyline = (L.polyline as any)(coordinates as any,{
               color:"#84b960",
               fillColor:"#84b960",
               fillOpacity: 1
           }).addTo(this.map);
-          this.polylines.push(polyline);
+          this.polylinesforDischarge.push(polyline);
             allPolylineCoordinates.push(coordinates as any);
           });
+          },error => {
+            console.error('Error fetching map data', error);
+            });
+          
         }else{
           legend.style.display = 'none';
+          this.polylinesforDischarge.forEach(polyline => {
+            this.map.removeLayer(polyline);
+            console.log("polylines remove");
+          });
         }
         
   
@@ -453,20 +544,10 @@ FetchDateForMapViewMultipleMachines(payload:any){
     console.error('Error fetching map data', error);
     this.isLoading = false;
     });
-    }, 1000);
+    //}, 1000);
 }
 
-private getMultipleMachineWithMultipleDates(startDate:string,endDate:string) {
-  const bounds = this.map.getBounds();
-  const payload = this.createPayloadForMapView(bounds,startDate,endDate);
-  this.FetchDataForMapView(payload);
-}
 
-private getSingleMachineMapViewDataForExtend(startDate:string,endDate:string) {
-  const bounds = this.map.getBounds();
-  const payload = this.createPayloadForExtend(bounds,startDate,endDate);
-  this.fetchAndUpdateMapDataForExtend(payload);
-}
 private fetchAndUpdateMapDataForExtend(payload:any){
     let legend = document.querySelector('.green-box-legend') as HTMLElement;
     legend.style.display = 'none';
@@ -647,9 +728,11 @@ private fetchAndUpdateMapDataForExtend(payload:any){
 private fetchAndUpdateMapDataForExtendforMapData(payload:any){
   let legend = document.querySelector('.green-box-legend') as HTMLElement;
   legend.style.display = 'none';
+  console.log("zoom level is equal to " + this.map.getZoom());
+  //if(this.map.getZoom()==6  || this.map.getZoom()==6 ||  || this.map.getZoom()==12 || this.map.getZoom()==14 || this.map.getZoom()==16 || this.map.getZoom()==18){
     this.isLoading = true;
     console.log("multiple Machine with extend View!");
-    setTimeout(() => {
+    //setTimeout(() => {
       this.mapDataService.getSingleMachineMapViewDataForExtendView(payload).subscribe(data => {
         this.isLoading = false;
           this.clearMap();
@@ -818,9 +901,15 @@ private fetchAndUpdateMapDataForExtendforMapData(payload:any){
           console.error('Error fetching map data', error);
           this.isLoading = false;
         }); 
-    }, 2000);
+   // }, 2000);
+  //}
+    
 }
 private createPayloadForExtend(bounds: L.LatLngBounds,startDate:string,endDate:string){
+
+  const mapContainer = this.map.getContainer();
+  const height = mapContainer.clientHeight;
+  const width = mapContainer.clientWidth;
   return {
     "UserLanguage": "en",
     "CustomerNumber": 500000,
@@ -838,8 +927,8 @@ private createPayloadForExtend(bounds: L.LatLngBounds,startDate:string,endDate:s
     "EndDateTime": endDate,
     "LegendStatus": [1, 3, 0, 2],
     "ZoomLevel": this.map.getZoom(),
-    "Height": 600, 
-    "Width": 1896,
+    "Height": height, 
+    "Width": width,
     "IsFirstRequest": false,
     "MaxLat": bounds.getNorthEast().lat,
     "MaxLng": bounds.getNorthEast().lng,
@@ -849,9 +938,12 @@ private createPayloadForExtend(bounds: L.LatLngBounds,startDate:string,endDate:s
   };
 }
 private createPayloadForMapView(bounds: L.LatLngBounds,startDate:string,endDate:string){
+  const mapContainer = this.map.getContainer();
+  const height = mapContainer.clientHeight;
+  const width = mapContainer.clientWidth;
   return {"UserLanguage": "en",
       "CustomerNumber": 500000,
-      "IsMapRender": true,
+      "IsMapRender": false,
       "ShowRawDataOnly": false,
       "RequestedMachinesList": [
           {
@@ -868,8 +960,8 @@ private createPayloadForMapView(bounds: L.LatLngBounds,startDate:string,endDate:
       ],
       "ZoomLevel": this.map.getZoom(),
       "IsFirstRequest": false,
-      "Height": 600,
-      "Width": 1576,
+      "Height": height,
+      "Width": width,
      "MaxLat": bounds.getNorthEast().lat,
     "MaxLng": bounds.getNorthEast().lng,
     "MinLat": bounds.getSouthWest().lat,
@@ -877,6 +969,40 @@ private createPayloadForMapView(bounds: L.LatLngBounds,startDate:string,endDate:
       "StartDateTime": startDate,
       "EndDateTime": endDate,
       "LoggedInUserId": "6da7a9c4-d338-454e-b580-c46132f29f10"}
+}
+private createPayloadForLegend(bounds: L.LatLngBounds,startDate:string,endDate:string){
+  return {
+    "UserLanguage": "en",
+    "CustomerNumber": 500000,
+    "IsMapRender": false,
+    "ShowRawDataOnly": false,
+    "RequestedMachinesList": [
+        {
+            "SerialNumber": "6M2039",
+            "RoleId": "204",
+            "LicenseId": "3e43c110-5149-42f3-a690-bcfdd7238cb6"
+        }
+    ],
+    "Geohashes": [
+        "u0z1dn",
+        "u0z1dq",
+        "u0z1dw",
+        "u0z1dp",
+        "u0z1dr",
+        "u0z1dx"
+    ],
+    "LegendStatus": [
+        3
+    ],
+    "ZoomLevel": this.map.getZoom(),
+    "MaxLat": bounds.getNorthEast().lat,
+    "MaxLng": bounds.getNorthEast().lng,
+    "MinLat": bounds.getSouthWest().lat,
+    "MinLng": bounds.getSouthWest().lng,
+    "StartDateTime": startDate,
+    "EndDateTime": endDate,
+    "LoggedInUserId": "6da7a9c4-d338-454e-b580-c46132f29f10"
+}
 }
 private fetchMapDataForExdendView(startDate:string,endDate:string){
   const payload = {
@@ -1039,14 +1165,9 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
                   this.polylines.push(polyline);
                   allPolylineCoordinates.push(coordinates as any);
             }); 
-            }/*  else if(zoomlevel<16){
-            legend.style.display = 'none';
-            this.polylinesforDischarge.forEach(polyline => {
-              this.map.removeLayer(polyline);
-              console.log("polylines remove");
-            });
-            this.polylinesforDischarge = []; */
-          //}  
+            }  else if(zoomlevel<16){
+            legend.style.display = 'none'; 
+          }  
           data.mapData.timelyGapLinePath.forEach((line:Line) =>{
               const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
               const polyline = L.polyline(coordinates as any,{
@@ -1082,8 +1203,7 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
     
         this.customMarkers.push(labelMarker);
         }); 
-            if(this.flag==0)
-            {
+            if(this.flag==0){
               if (allPolylineCoordinates.length > 0) {
                 this.flag=1;
                 console.log("enter the fit bound code");
@@ -1094,65 +1214,8 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
                   this.homeControl.setCenter(center);
                   this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
                 }
-            }
-          }
-          
-        
-          /*if(this.extendControl==false){
-            this.map.on("zoomend",()=>{
-              var zoomlevel = this.map.getZoom();
-              console.log("zoom level is " + zoomlevel);
-              if(zoomlevel > 16)
-              {
-                //legend.style.display='inline-block';
-                data.mapData.dischargeLinePath.forEach((line:Line) =>{
-                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                const polyline = L.polyline(coordinates as any,{
-                      color:"#84b960"
-                  }).addTo(this.map);
-                  this.polylinesforDischarge.push(polyline);
-                 allPolylineCoordinates.push(coordinates as any);
-                });
-            
-                data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-                    const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                    const polyline = L.polyline(coordinates as any,{
-                        color:"#84b960"
-                    }).addTo(this.map);
-                    this.polylinesforDischarge.push(polyline);
-                    allPolylineCoordinates.push(coordinates as any);
-                });
-              }else if(zoomlevel<16){
-                  //legend.style.display = 'none';
-                  this.polylinesforDischarge.forEach(polyline => {
-                      this.map.removeLayer(polyline);
-                      console.log("polylines remove");
-                  });
-                  this.polylinesforDischarge = [];
               }
-            });
-          } */
-        /* this.clearMap();
-        let allPolylineCoordinates: [number, number][] = [];
-    
-        this.addPolylines(data.mapData.roadTripLinePath, "#7acdef", allPolylineCoordinates);
-        this.addPolylines(data.mapData.harvestingLinePath, "#ffd800", allPolylineCoordinates);
-        this.addPolylines(data.mapData.notHarvestingLinePath, "#E37056", allPolylineCoordinates);
-        this.addPolylines(data.mapData.dischargeLinePath, "#84b960", allPolylineCoordinates);
-        this.addPolylines(data.mapData.dischargeWithoutCircleLinePath, "#84b960", allPolylineCoordinates);
-        this.addPolylines(data.mapData.timelyGapLinePath, "#fd7e14", allPolylineCoordinates);
-        this.addPolygons(data.mapData.harvestingPolygonPath, "#ffd800", allPolylineCoordinates);
-    
-        this.addMarkers(data.mapMarkers.harvestingMapMarkers);
-        if (allPolylineCoordinates.length > 0) {
-          const bounds = L.latLngBounds(allPolylineCoordinates);
-          this.map.fitBounds(bounds);
-          const center = bounds.getCenter();
-          if (!isNaN(center.lat) && !isNaN(center.lng)) {
-            this.homeControl.setCenter(center);
-            this.homeControl.setZoom(this.map.getBoundsZoom(bounds));
-          }
-        } */
+            }
        console.log("data loaded successfullys!");
   
       }, error => {
@@ -1162,60 +1225,10 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
     }, 3000); 
   }
 
-  /* private addPolylines(linePaths: any[], color: string, allPolylineCoordinates: [number, number][]) {
-    linePaths.forEach((line: Line) => {
-      const coordinates = line.coordinates.map(coord => [coord.lat, coord.lng]);
-      const polyline = L.polyline(coordinates as any, { color }).addTo(this.map);
-      this.polylines.push(polyline);
-      allPolylineCoordinates.push(coordinates as any);
-    });
-  }
-
-  private addPolygons(polygonPaths: any[], color: string, allPolylineCoordinates: [number, number][]) {
-    polygonPaths.forEach((polygon: Line) => {
-      const coordinates = polygon.coordinates.map(coord => [coord.lat, coord.lng]);
-      const polyline = L.polyline(coordinates as any, { color }).addTo(this.map);
-      this.polylines.push(polyline);
-      allPolylineCoordinates.push(coordinates as any);
-    });
-  }
-
-  private addMarkers(markers: any[]) {
-    const customIcon = L.icon({
-      iconUrl: './assets/red-flag.png',
-      iconSize: [64, 64],
-      iconAnchor: [10, 64]
-    });
-  
-    markers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) => {
-      const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: customIcon })
-        .addTo(this.map);
-      this.customMarkers.push(customMarker);
-  
-      const label = L.divIcon({
-        className: 'label-icon',
-        html: `<div>${marker.markerLabel}</div>`,
-        iconSize: [64, 64],
-        iconAnchor: [10, 55]
-      });
-  
-      const labelMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
-        .addTo(this.map);
-  
-      this.customMarkers.push(labelMarker);
-    });
-  } */
-
   private getSingleMachineMapViewData() {
     const bounds = this.map.getBounds();
     const payload = this.createPayload(bounds);
     this.fetchAndUpdateMapData(payload);
-  }
-
-  private loadMultipleMachineMapDataOnMap(){
-    this.map.on('moveend', () => this.onMapMove());
-    this.map.on('zoomend', () => this.onMapMove());
-   
   } 
   
   private loadMarker(): void {
@@ -1238,7 +1251,7 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
       this._markers.clearLayers();
     }
     this.clearMap();
-    setTimeout(() => {
+    //setTimeout(() => {
       this.mapDataService.getMultipleMachineWithMultipleDates(payload).subscribe(data => {
         this.isLoading = false;
         const mapInfoWindow = data.mapInfoWindowDto.harvestingMapInfoWindows;
@@ -1260,6 +1273,11 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
           marker.openTooltip();
           this._markers.addLayer(marker);
           });
+          /* if(data.roadTripLinePath==null)
+          {
+            this.map.setZoom(18);
+          } */
+          
           /* if(this.zoomLevelSet==false){
             console.log(this.zoomLevelSet);
             this.map.setView(this._markers.getBounds().getCenter(), 18); 
@@ -1373,59 +1391,12 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
     console.error('Error fetching map data', error);
     this.isLoading = false;
     });
-    }, 1000);
+   // }, 1000);
 }
 
-  onMapMove() {
-    /* const bounds = this.map.getBounds();
-    const minLat = bounds.getSouth();
-    const maxLat = bounds.getNorth();
-    const minLng = bounds.getWest();
-    const maxLng = bounds.getEast();
-
-    console.log('MinLat:', minLat, 'MaxLat:', maxLat, 'MinLng:', minLng, 'MaxLng:', maxLng);
-
-     let allPolylineCoordinates: [number, number][] = [];
-      this._singleMechineData.getMultipleMachineMapdata().machinePolylineDto.roadTripLinePath.forEach((line)=>{
-        const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-          color:"#7acdef" 
-        }).addTo(this.map);
-      this.polylines.push(polyline);
-      allPolylineCoordinates.push(coordinates as any);
-      });
-      this._singleMechineData.getMultipleMachineMapdata().machinePolylineDto.notHarvestingLinePath.forEach((line)=>{
-        const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-          color:"#E37056" 
-        }).addTo(this.map);
-      this.polylines.push(polyline);
-      allPolylineCoordinates.push(coordinates as any);
-      });
-       this._singleMechineData.getMultipleMachineMapdata().machinePolylineDto.harvestingPolygonPath.forEach((line)=>{
-        const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
-        const polygon = (L.polygon as any)(coordinates as any,{
-          color:"#ffd800",
-          fillColor:"#ffd800",
-          fillOpacity: 1
-      }).addTo(this.map);
-      this.polylines.push(polygon);
-        allPolylineCoordinates.push(coordinates as any);
-      }); 
-      this._singleMechineData.getMultipleMachineMapdata().machinePolylineDto.dischargeLinePath.forEach((line)=>{
-        const coordinates = line.coordinates.map((coord) => [coord.lat, coord.lng]);
-        const polygon = (L.polygon as any)(coordinates as any,{
-          color:"#84b960",
-          fillColor:"#84b960",
-          fillOpacity: 1
-      }).addTo(this.map);
-      this.polylines.push(polygon);
-        allPolylineCoordinates.push(coordinates as any);
-      }); */
-  }
 
   
-  onRenderDayCell(args: RenderDayCellEventArgs): void {
+/*   onRenderDayCell(args: RenderDayCellEventArgs): void {
     const date = args.date;
     if (date) {
       const dateString = this.getLocalDateString(date);
@@ -1434,33 +1405,8 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
         args.isDisabled = true;
       }
     }
-  }
+  } */
 
-  getLocalDateString(date: Date): string {
-    const year = date.getFullYear();
-    const month = ('0' + (date.getMonth() + 1)).slice(-2);
-    const day = ('0' + date.getDate()).slice(-2);
-    return `${year}-${month}-${day}`;
-  }
-
-  private fitMapToBounds(): void {
-    const mapInfoWindows = this._singleMechineData.getMultipleMachineMapdata().mapInfoWindowDto.harvestingMapInfoWindows;
-    
-    const latLngs: L.LatLngExpression[] = mapInfoWindows.map(infoWindow => {
-      return [infoWindow.mapInfoWindowCoordinate.lat, infoWindow.mapInfoWindowCoordinate.lng];
-    });
-
-    if (latLngs.length > 0) {
-      const bounds = L.latLngBounds(latLngs);
-      this.map.fitBounds(bounds);
-      const center = bounds.getCenter();
-      const zoom = this.map.getBoundsZoom(bounds);
-      this.homeControl.setCenter(center);
-      console.log('Calculated Zoom Level:', zoom);
-      this.homeControl.setZoom(zoom);
-    }
-
-  }
 
   closePreview() {
     this.selectedImage = '';
@@ -1481,196 +1427,6 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
     this.clearMapData();
     this.fetchMapData(formattedDate);
   }
-
-  /* private getSingleMachineMapViewData(){
-    this.currentDate = this._singleMechineData.getDate();
-    let legend = document.querySelector('.green-box-legend') as HTMLElement;
-    if(this.extendControl!=true){
-      legend.style.display = 'none';
-    }
-    if(this.currentDate==null){
-      const currentDate = new Date();
-      const formattedDate = currentDate.toISOString();
-      this.currentDate = formattedDate;
-    } 
-      const payload = {
-        "UserLanguage": "en",
-        "CustomerNumber": 500000,
-        "IsMapRender": true,
-        "ShowRawDataOnly": false,
-        "RequestedMachinesList": [
-            {
-                "SerialNumber": "6M2039",
-                "RoleId": "204",
-                "LicenseId": "3e43c110-5149-42f3-a690-bcfdd7238cb6"
-            }
-        ],
-        "Geohashes": [],
-        "StartDateTime": this.currentDate,
-        "EndDateTime": this.currentDate,
-        "LegendStatus": [
-            1,
-            3,
-            0,
-            2
-        ],
-        "ZoomLevel": 11,
-        "Height": 600,
-        "Width": 1896,
-        "IsFirstRequest": true,
-        "MaxLat": 51.290397773626424,
-        "MaxLng": 11.102439941406255,
-        "MinLat": 51.0406641842671,
-        "MinLng": 9.800560058593755,
-        "LoggedInUserId": "6da7a9c4-d338-454e-b580-c46132f29f10"
-    };
-    this.isLoading = true;
-    this.mapDataService.getSingleMachineMapViewDataForExtendView(payload).subscribe(data => {
-      this.isLoading = false;
-      let allPolylineCoordinates: [number, number][] = [];
-          data.mapData.roadTripLinePath.forEach((line:Line) =>{
-          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-          const polyline = L.polyline(coordinates as any,{
-                color:"#7acdef" 
-            }).addTo(this.map);
-            this.polylines.push(polyline);
-            allPolylineCoordinates.push(coordinates as any);
-          });
-          data.mapData.harvestingLinePath.forEach((line:Line) =>{
-            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            const polyline = L.polyline(coordinates as any,{
-                color:"#ffd800"
-            }).addTo(this.map);
-            this.polylines.push(polyline);
-            allPolylineCoordinates.push(coordinates as any);
-        });
-        data.mapData.notHarvestingLinePath.forEach((line:Line) =>{
-            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                const polyline = L.polyline(coordinates as any,{
-                color:"#E37056"
-            }).addTo(this.map);
-            this.polylines.push(polyline);
-            allPolylineCoordinates.push(coordinates as any);
-        });
-        if(this.extendControl==false){
-          this.map.on("zoomend",()=>{
-            var zoomlevel = this.map.getZoom();
-            console.log("zoom level is " + zoomlevel);
-            if(zoomlevel > 16)
-            {
-              legend.style.display='inline-block';
-              data.mapData.dischargeLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-              const polyline = L.polyline(coordinates as any,{
-                    color:"#84b960"
-                }).addTo(this.map);
-                this.polylinesforDischarge.push(polyline);
-               allPolylineCoordinates.push(coordinates as any);
-              });
-          
-              data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                  const polyline = L.polyline(coordinates as any,{
-                      color:"#84b960"
-                  }).addTo(this.map);
-                  this.polylinesforDischarge.push(polyline);
-                  allPolylineCoordinates.push(coordinates as any);
-              });
-            }else if(zoomlevel<16){
-                // Remove only the polylines added at zoom level 16
-                legend.style.display = 'none';
-                this.polylinesforDischarge.forEach(polyline => {
-                    this.map.removeLayer(polyline);
-                    console.log("polylines remove");
-                });
-                // Clear the polylines array
-                this.polylinesforDischarge = [];
-                // Clear the allPolylineCoordinates array if needed
-                //allPolylineCoordinatesforDischarge = [];
-            }
-          });
-        }
-          data.mapData.dischargeLinePath.forEach((line:Line) =>{
-            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            const polyline = L.polyline(coordinates as any,{
-                  color:"#84b960"
-              }).addTo(this.map);
-              this.polylines.push(polyline);
-              allPolylineCoordinates.push(coordinates as any);
-            });
-        
-            data.mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                const polyline = L.polyline(coordinates as any,{
-                    color:"#84b960"
-                }).addTo(this.map);
-                this.polylines.push(polyline);
-                allPolylineCoordinates.push(coordinates as any);
-            });  
-            data.mapData.timelyGapLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-              const polyline = L.polyline(coordinates as any,{
-                  color:"#fd7e14"
-              }).addTo(this.map);
-              this.polylines.push(polyline);
-              allPolylineCoordinates.push(coordinates as any);
-          }); 
-          data.mapData.harvestingPolygonPath.forEach((line:Line) =>{
-            const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            const polygon = L.polyline(coordinates as any,{
-                color:"#ffd800"
-            }).addTo(this.map);
-            this.polylines.push(polygon);
-            allPolylineCoordinates.push(coordinates as any);
-        }); 
-
-        const customIcon = L.icon({
-          iconUrl: './assets/red-flag.png',
-          iconSize: [64, 64],
-          iconAnchor: [10, 64]
-        });
-    
-    
-        const markerdata = data.mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
-        const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
-        .addTo(this.map);
-        this.customMarkers.push(customMarker);
-    
-    
-        const label = L.divIcon({
-          className: 'label-icon',
-          html: `<div>${marker.markerLabel}</div>`,
-          iconSize: [64, 64], // Adjusted iconSize if needed
-          iconAnchor: [10, 55] // Example adjustment for label position
-        });
-    
-        const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
-        .addTo(this.map);
-    
-        this.customMarkers.push(labelMarker);
-        });
-
-        if (allPolylineCoordinates.length > 0) {
-          console.log('enter into the fit bound method');
-          const bounds = L.latLngBounds(allPolylineCoordinates);
-          this.map.fitBounds(bounds);
-          const center = bounds.getCenter();
-          if (isNaN(center.lat) || isNaN(center.lng)) {
-            console.error('Invalid center coordinates:', center.lat, center.lng);
-            return;
-          }
-          const zoom = this.map.getBoundsZoom(bounds);
-          this.homeControl.setCenter(center);
-          console.log('Calculated Zoom Level:', zoom);
-          this.homeControl.setZoom(zoom);
-        }else{
-            console.error('No valid polyline coordinates found.');
-        }
-    }, error => {
-      console.error('Error fetching map data', error);
-      this.isLoading = false;
-    });
-  } */
 
   private clearMapData(): void {
 
@@ -1845,10 +1601,10 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
     
         if(data.imageData)
         {
-            //this.markerClusterGroup.clearLayers();
             var imagedata = data.imageData.forEach((image :any) =>{
               const cameraType = image.cameraType;
               const imagePath = image.path;
+              const timedata = image.time;
               var tooltip = L.tooltip({
                 direction:'top',
                 permanent:true,
@@ -1862,14 +1618,22 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
               }).bindTooltip(tooltip).openTooltip();
               this.markerClusterGroup.addLayer(marker);
               marker.on('click', (e: any) => {
-                const target = e.originalEvent.target as HTMLElement;
-                if (target.classList.contains('tooltip-image')) {
-                  this.selectedImage = image.path;
-                  console.log(this.selectedImage);
-                }
+                this.mapDataService.getImageForMultipleMachine(imagePath).subscribe(
+                  data => {
+                    const url = URL.createObjectURL(data);
+                    this.selectedImage = url;
+                    console.log("Image URL: " + this.selectedImage);
+                    const { date, time} = this.separateDateTime(timedata);
+                    if(cameraType=='unloadingcam'){
+                      this.imageContentData = "Unloading conveyor camera picture " + date + ", " + time + " Clock";
+                    }else{
+                      this.imageContentData = "Front camera recording " + date + ", " + time + " Clock";
+                    }
+                   },error => {
+                    console.error('Error fetching map data', error);
+                  });
               });
             });
-            //this.map.addLayer(this.markerClusterGroup);
         }else{
         }       
         
@@ -1897,204 +1661,30 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
     )
   }
 
-
-  /* onDateSelected(args: any): void {
-    let selectedDate = args.value;
-
-    if (!selectedDate) {
-        console.error("No date selected");
-        return;
-    }
-
-    const selectedYear = selectedDate.getFullYear();
-    const selectedMonth = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
-    const selectedDay = selectedDate.getDate().toString().padStart(2, '0');
-    const selectedDateString = `${selectedYear}-${selectedMonth}-${selectedDay}`;
-
-    this.polylines.forEach(polyline => this.map.removeLayer(polyline));
-    this.polylines = [];
-    this.customMarkers.forEach(marker => {
-        if (this.map.hasLayer(marker)) {
-            this.map.removeLayer(marker);
-        }
-    });
-    this.customMarkers = [];
-
-    for (let i = 0; i < this._machineData.length; i++) {
-      if (this._machineData[i]?.machineCalculations?.time) {
-        const machineDataDateString = this._machineData[i].machineCalculations.time.toString().split('T')[0];
-        this.enabledDates.push(machineDataDateString);
-        console.log("Backend date: " + machineDataDateString);
-        if (selectedDateString == machineDataDateString) {
-          console.log('Match found at index:', i);
-          this._singleMechineData.setIndex(i);
-          this.loadMap(i);
-          break;
-        } else {
-             console.log("Match not found!");
-          }
-        }
-    }
-  } */
-
-   private loadMap(i: number){ 
-
-    let allPolylineCoordinates: [number, number][] = [];
-    this.markerClusterGroup = (L as any).markerClusterGroup({
-      iconCreateFunction: function (cluster:any) {
-        var markers = cluster.getAllChildMarkers();
-        var html = '<div class="circle"><span class="cluster-content">' + markers.length + '</span></div>';
-        return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
-    },
-    });
-
-    this._machineData[i].mapData.roadTripLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#7acdef" 
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    this._machineData[i].mapData.harvestingLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#ffd800"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    this._machineData[i].mapData.notHarvestingLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            const polyline = L.polyline(coordinates as any,{
-            color:"#E37056"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    this._machineData[i].mapData.dischargeLinePath.forEach((line:Line) =>{
-      const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-      const polyline = L.polyline(coordinates as any,{
-          color:"#84b960",
-          weight: 7
-      }).addTo(this.map);
-      this.polylines.push(polyline);
-      allPolylineCoordinates.push(coordinates as any);
-    }); 
+  
+  separateDateTime(isoString: string): { date: string, time: string } {
+    // Create a Date object from the ISO string
+    const dateObj = new Date(isoString);
+  
+    // Extract the date components
+    const year = dateObj.getUTCFullYear();
+    const month = ('0' + (dateObj.getUTCMonth() + 1)).slice(-2); // months are 0-based
+    const day = ('0' + dateObj.getUTCDate()).slice(-2);
+  
+    // Extract the time components
+    const hours = ('0' + dateObj.getUTCHours()).slice(-2);
+    const minutes = ('0' + dateObj.getUTCMinutes()).slice(-2);
+    const seconds = ('0' + dateObj.getUTCSeconds()).slice(-2);
+  
+    // Format the date and time strings
+    const date = `${year}/${month}/${day}`;
+    const time = `${hours}:${minutes}:${seconds}`;
+  
+    return { date, time };
+  }
 
 
-    this._machineData[i].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-      const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-      const polyline = L.polyline(coordinates as any,{
-          color:"#84b960"
-      }).addTo(this.map);
-      this.polylines.push(polyline);
-      allPolylineCoordinates.push(coordinates as any);
-    });
-
-    this._machineData[i].mapData.timelyGapLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#fd7e14"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    const customIcon = L.icon({
-      iconUrl: './assets/red-flag.png',
-      iconSize: [64, 64], 
-      iconAnchor: [10, 64]
-    });
-
-    const data = this._machineData[i].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
-      const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
-      .addTo(this.map);
-      this.customMarkers.push(customMarker);
-
-      const label = L.divIcon({
-        className: 'label-icon',
-        html: `<div>${marker.markerLabel}</div>`,
-        iconSize: [64, 64], // Adjusted iconSize if needed
-        iconAnchor: [10, 55] // Example adjustment for label position
-      });
-
-      const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
-        .addTo(this.map);
-
-        this.customMarkers.push(labelMarker);
-    });
-
-    if (this._machineData[i].imageData.length > 0) {
-      if (!this.imageControl) {
-        this.imageControl = (L.control as any).ImageControl({
-          position: 'topright',
-          markerClusterGroup: this.markerClusterGroup,
-        }).addTo(this.map);
-      }
-    } 
-    else{
-      if (this.imageControl) {
-        this.imageControl.remove();
-        this.imageControl = null;
-      }
-    }
-
-    if(this._machineData[i].imageData)
-    {
-        var imagedata = this._machineData[i].imageData.forEach((image :any) =>{
-          const cameraType = image.cameraType;
-          const imagePath = image.path;
-          var tooltip = L.tooltip({
-            direction:'top',
-            permanent:true,
-            interactive:true,
-            offset:[-15,26],
-          })
-          .setLatLng([image.gpsLatitude, image.gpsLongitude])
-          .setContent(tooltipData(cameraType,imagePath));
-          const marker = L.marker([image.gpsLatitude, image.gpsLongitude]).bindTooltip(tooltip).openTooltip();
-          this.markerClusterGroup.addLayer(marker);
-          marker.on('click', (e: any) => {
-            const target = e.originalEvent.target as HTMLElement;
-            if (target.classList.contains('tooltip-image')) {
-              this.selectedImage = image.path;
-              console.log(this.selectedImage);
-            }
-          });
-        });
-        this.map.addLayer(this.markerClusterGroup);
-    }else{
-    }
-    
-    /* this._machineData[i].imageData.forEach((image: { gpsLatitude: number; gpsLongitude: number; path: any; }) =>{
-      const marker = L.marker([image.gpsLatitude, image.gpsLongitude]);
-      this._markers.push(marker);
-      const path = image.path;
-      markerClusterGroup.addLayer(marker);
-    }); */
-
-    //this.map.addLayer(markerClusterGroup);
-    
-    if (allPolylineCoordinates.length > 0) {
-      const bounds = L.latLngBounds(allPolylineCoordinates);
-      this.map.fitBounds(bounds);
-      const center = bounds.getCenter();
-      if (isNaN(center.lat) || isNaN(center.lng)) {
-        console.error('Invalid center coordinates:', center.lat, center.lng);
-        return;
-      }
-      const zoom = this.map.getBoundsZoom(bounds);
-      this.homeControl.setCenter(center);
-      console.log('Calculated Zoom Level:', zoom);
-      this.homeControl.setZoom(zoom);
-    }else{
-        console.error('No valid polyline coordinates found.');
-    }
-  } 
+ 
 
   private toggleLegendAndPaths(color: string) {
     switch (color) {
@@ -2196,269 +1786,7 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
         maxZoom: 18,
         center: [0, 0], // Default center coordinates
         zoom: 2
-    });
-
-    
-/*     this.map.on('zoomend', () => this.onMapMove());
-
-    onMapMove() {
-      
-    } */
-
-    /* let legend = document.querySelector('.green-box-legend') as HTMLElement;
-    if(this.extendControl!=true){
-      legend.style.display = 'none';
-    } */
-
-    if(this._singleMechineData.getIndex()==-1)
-    {
-      /* if(this.legends.isUnloading==false && this.showClusterControl==false){
-
-        let allPolylineCoordinates: [number, number][] = [];
-    
-        this._multipleDatesData[0].mapData.roadTripLinePath.forEach((line:Line) =>{
-          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-          const polyline = (L.polyline as any)(coordinates as any,{
-              color:"#7acdef" 
-          }).addTo(this.map);
-          this.polylines.push(polyline);
-          allPolylineCoordinates.push(coordinates as any);
-        });
-        this._multipleDatesData[0].mapData.notHarvestingLinePath.forEach((line:Line) =>{
-          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-          const polyline = (L.polyline as any)(coordinates as any,{
-              color:"#E37056" 
-          }).addTo(this.map);
-          this.polylines.push(polyline);
-          allPolylineCoordinates.push(coordinates as any);
-        });
-        this._multipleDatesData[0].mapData.harvestingPolygonPath.forEach((line:Line) =>{
-          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-          const polygon = (L.polygon as any)(coordinates as any,{
-              color:"#ffd800" 
-        }).addTo(this.map);
-            this.polylines.push(polygon);
-            allPolylineCoordinates.push(coordinates as any);
-        });
-        const customIcon = L.icon({
-          iconUrl: './assets/red-flag.png',
-          iconSize: [64, 64], 
-          iconAnchor: [10, 64] 
-        });
-        const data = this._multipleDatesData[0].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
-          const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
-          .addTo(this.map);
-          this.customMarkers.push(customMarker);
-      
-          const label = L.divIcon({
-            className: 'label-icon',
-            html: `<div>${marker.markerLabel}</div>`,
-            iconSize: [64, 64], // Adjusted iconSize if needed
-            iconAnchor: [10, 55] // Example adjustment for label position
-          });
-      
-          const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
-          .addTo(this.map);
-          this.customMarkers.push(labelMarker);
-        });
-    
-        if (allPolylineCoordinates.length > 0) {
-          const bounds = L.latLngBounds(allPolylineCoordinates);
-          this.map.fitBounds(bounds);
-    
-          const center = bounds.getCenter();
-          const zoomLevel = this.map.getBoundsZoom(bounds);
-    
-          setTimeout(() => {
-            this.map.setView(center, zoomLevel);
-            this.homeControl.setCenter(center);
-             this.homeControl.setZoom(zoomLevel);
-          }, 200);    
-        }
-      } */
-    }else{
-        if(this.showClusterControl==false){
-          let allPolylineCoordinates: [number, number][] = [];
-          
-          this._machineData[this._singleMechineData.getIndex()].mapData.roadTripLinePath.forEach((line:Line) =>{
-          const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            const polyline = L.polyline(coordinates as any,{
-                color:"#7acdef" 
-            }).addTo(this.map);
-            this.polylines.push(polyline);
-            allPolylineCoordinates.push(coordinates as any);
-          });
-      
-          this._machineData[this._singleMechineData.getIndex()].mapData.harvestingLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-              const polyline = L.polyline(coordinates as any,{
-                  color:"#ffd800"
-              }).addTo(this.map);
-              this.polylines.push(polyline);
-              allPolylineCoordinates.push(coordinates as any);
-          });
-      
-          this._machineData[this._singleMechineData.getIndex()].mapData.notHarvestingLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                  const polyline = L.polyline(coordinates as any,{
-                  color:"#E37056"
-              }).addTo(this.map);
-              this.polylines.push(polyline);
-              allPolylineCoordinates.push(coordinates as any);
-          });
-          
-          /* if(this.extendControl==false){
-            this.map.on("zoomend",()=>{
-              var zoomlevel = this.map.getZoom();
-              if(zoomlevel > 16)
-              {
-                legend.style.display='inline-block';
-                this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
-                const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                const polyline = L.polyline(coordinates as any,{
-                      color:"#84b960"
-                  }).addTo(this.map);
-                  this.polylinesforDischarge.push(polyline);
-                 allPolylineCoordinates.push(coordinates as any);
-                });
-            
-                this._machineData[this._singleMechineData.getIndex()].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-                    const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                    const polyline = L.polyline(coordinates as any,{
-                        color:"#84b960"
-                    }).addTo(this.map);
-                    this.polylinesforDischarge.push(polyline);
-                    allPolylineCoordinates.push(coordinates as any);
-                });
-              }else if(zoomlevel<16){
-                  // Remove only the polylines added at zoom level 16
-                  legend.style.display = 'none';
-                  this.polylinesforDischarge.forEach(polyline => {
-                      this.map.removeLayer(polyline);
-                      console.log("polylines remove");
-                  });
-                  // Clear the polylines array
-                  this.polylinesforDischarge = [];
-                  // Clear the allPolylineCoordinates array if needed
-                  //allPolylineCoordinatesforDischarge = [];
-              }
-            });
-          }else{
-            
-            this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-              const polyline = L.polyline(coordinates as any,{
-                    color:"#84b960"
-                }).addTo(this.map);
-                this.polylines.push(polyline);
-                allPolylineCoordinates.push(coordinates as any);
-              });
-          
-              this._machineData[this._singleMechineData.getIndex()].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-                  const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-                  const polyline = L.polyline(coordinates as any,{
-                      color:"#84b960"
-                  }).addTo(this.map);
-                  this.polylines.push(polyline);
-                  allPolylineCoordinates.push(coordinates as any);
-              });  
-          } */
-            
-          this._machineData[this._singleMechineData.getIndex()].mapData.timelyGapLinePath.forEach((line:Line) =>{
-              const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-              const polyline = L.polyline(coordinates as any,{
-                  color:"#fd7e14"
-              }).addTo(this.map);
-              this.polylines.push(polyline);
-              allPolylineCoordinates.push(coordinates as any);
-          });
-      
-          const customIcon = L.icon({
-            iconUrl: './assets/red-flag.png',
-            iconSize: [64, 64],
-            iconAnchor: [10, 64]
-          });
-      
-      
-          const data = this._machineData[this._singleMechineData.getIndex()].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
-          const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
-          .addTo(this.map);
-          this.customMarkers.push(customMarker);
-      
-      
-          const label = L.divIcon({
-            className: 'label-icon',
-            html: `<div>${marker.markerLabel}</div>`,
-            iconSize: [64, 64], // Adjusted iconSize if needed
-            iconAnchor: [10, 55] // Example adjustment for label position
-          });
-      
-          const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
-          .addTo(this.map);
-      
-          this.customMarkers.push(labelMarker);
-          }); 
-
-          if(this.extendControl==true){
-            this.markerClusterGroup = (L as any).markerClusterGroup({
-              iconCreateFunction: (cluster: any) => {
-                const markers = cluster.getAllChildMarkers();
-                const html = '<div class="circle"><span class="cluster-content">' + markers.length + '</span></div>';
-                return L.divIcon({ html: html, className: 'mycluster', iconSize: L.point(32, 32) });
-              },
-            });
-
-            if (this._machineData[this._singleMechineData.getIndex()].imageData.length > 0) {
-              if (!this.imageControl) {
-                this.imageControl = (L.control as any).ImageControl({
-                  position: 'topright',
-                  markerClusterGroup: this.markerClusterGroup,
-                }).addTo(this.map);
-              }
-            } 
-            else{
-              if (this.imageControl) {
-                this.imageControl.remove();
-                this.imageControl = null;
-              }
-            }
-            if(this._machineData[this._singleMechineData.getIndex()].imageData)
-              {
-                  var imagedata = this._machineData[this._singleMechineData.getIndex()].imageData.forEach((image :any) =>{
-                    const cameraType = image.cameraType; 
-                    var tooltip = L.tooltip({
-                      direction:'top',
-                      permanent:true,
-                      interactive:true,
-                      offset:[-15,26],
-                    })
-                    .setLatLng([image.gpsLatitude, image.gpsLongitude])
-                    .setContent(tooltipData(cameraType,''));
-                    const marker = L.marker([image.gpsLatitude, image.gpsLongitude]).bindTooltip(tooltip).openTooltip();
-                    this.markerClusterGroup.addLayer(marker);
-                  });
-                  this.map.addLayer(this.markerClusterGroup);
-              }else{
-              }
-          }
-          
-          if (allPolylineCoordinates.length > 0) {
-            const bounds = L.latLngBounds(allPolylineCoordinates);
-            this.map.fitBounds(bounds);
-    
-            const center = bounds.getCenter();
-            const zoomLevel = this.map.getBoundsZoom(bounds);
-    
-            setTimeout(() => {
-                this.map.setView(center, zoomLevel);
-                this.homeControl.setCenter(center);
-                this.homeControl.setZoom(zoomLevel);
-            }, 200);    
-          }else{
-              console.error('No valid polyline coordinates found.');
-          }
-        }
-      }   
+    });  
 
     if(this.showClusterControl)
     {
@@ -2470,17 +1798,6 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
         },
         });
     }
-
-    /* if(this.showClusterControl==false && this.extendControl==true){
-      L.popup({
-        offset:[1,6],
-        keepInView:false,
-        autoClose:false
-      })
-      .setLatLng([this._lat, this._lng])
-      .setContent(popupData(this._machineData[0].machineCalculations.machine))
-      .openOn(this.map);  
-    } */
 
     this._ZoomControl = L.control.zoom({
         position:"bottomright",
@@ -2534,7 +1851,7 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
 
     var overlayMaps = {
 
-  };
+    };
 
     const scaleView = L.control.scale({
       position : 'bottomleft',
@@ -2542,19 +1859,10 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
       updateWhenIdle:true
     }).addTo(this.map);
 
-    /* const groupedOverlays = {}; */
-
-    /* const options = {
-      exclusiveGroups: [],
-      groupCheckboxes: true,
-      collapsed : false,
-      position : "topleft"
-    }; */
     var layerControl = L.control.layers(baseLayers, overlayMaps,{
       collapsed:false,
       position:'topleft'
     }).addTo(this.map);
-    //(L.control as any).groupedLayers(baseLayers, groupedOverlays, options).addTo(this.map);
 
     if(this.legends.isLifting)
     {
@@ -2640,106 +1948,6 @@ private fetchMapDataForExdendView(startDate:string,endDate:string){
         }, 200); 
       }
     }
-  /*else{
-
-    let allPolylineCoordinates: [number, number][] = [];
-    this._machineData[this._singleMechineData.getIndex()].mapData.roadTripLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#7acdef" 
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    this._machineData[this._singleMechineData.getIndex()].mapData.harvestingLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#ffd800"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    this._machineData[this._singleMechineData.getIndex()].mapData.notHarvestingLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-            const polyline = L.polyline(coordinates as any,{
-            color:"#E37056"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    this._machineData[this._singleMechineData.getIndex()].mapData.dischargeLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#84b960"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    this._machineData[this._singleMechineData.getIndex()].mapData.dischargeWithoutCircleLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#84b960"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    this._machineData[this._singleMechineData.getIndex()].mapData.timelyGapLinePath.forEach((line:Line) =>{
-        const coordinates = line.coordinates.map(coord => [coord.lat,coord.lng]);
-        const polyline = L.polyline(coordinates as any,{
-            color:"#fd7e14"
-        }).addTo(this.map);
-        this.polylines.push(polyline);
-        allPolylineCoordinates.push(coordinates as any);
-    });
-
-    const customIcon = L.icon({
-      iconUrl: './assets/red-flag.png',
-      iconSize: [64, 64], // Size of your icon
-      iconAnchor: [10, 64] // Adjusted to move the icon up by 64 pixels
-  });
-
-
-    const data = this._machineData[this._singleMechineData.getIndex()].mapMarkers.harvestingMapMarkers.forEach((marker: { mapMarkerCoordinate: { lat: number; lng: number; }; markerLabel: ((layer: L.Layer) => L.Content) | L.Content | L.Popup; }) =>{
-      const customMarker = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng],{ icon: customIcon })
-      .addTo(this.map);
-      this.customMarkers.push(customMarker);
-
-
-      const label = L.divIcon({
-        className: 'label-icon',
-        html: `<div>${marker.markerLabel}</div>`,
-        iconSize: [64, 64], // Adjusted iconSize if needed
-        iconAnchor: [12, 50] // Example adjustment for label position
-    });
-
-      const labelMarker  = L.marker([marker.mapMarkerCoordinate.lat, marker.mapMarkerCoordinate.lng], { icon: label })
-        .addTo(this.map);
-
-        this.customMarkers.push(labelMarker);
-    });
-    
-    
-    if (allPolylineCoordinates.length > 0) {
-        const bounds = L.latLngBounds(allPolylineCoordinates);
-        this.map.fitBounds(bounds);
-        const center = bounds.getCenter();
-        if (isNaN(center.lat) || isNaN(center.lng)) {
-            console.error('Invalid center coordinates:', center.lat, center.lng);
-            return;
-        }
-        const zoom = this.map.getBoundsZoom(bounds);
-        this.homeControl.setCenter(center);
-        console.log('Calculated Zoom Level:', zoom);
-        this.homeControl.setZoom(zoom);
-    }else{
-        console.error('No valid polyline coordinates found.');
-    }
-  }  */
   }
 
 }
@@ -2751,9 +1959,9 @@ function popupData(value:any): L.Content | ((source: L.Layer) => L.Content) {
 
 function tooltipData(cameraType: any,imagepath: any): L.Content | ((source: L.Layer) => L.Content) {
     if(cameraType=='unloadingcam'){
-      return `<div class="tooltipImage"><img src='./assets/MapBack.png' title="back camera" class="tooltip-image"></div>`;
+      return `<div class="tooltipImage"><img src='./assets/MapBack.png' title="uploading camera" class="tooltip-image"></div>`;
     }else{
-      return `<div class="tooltipImage" title='back camera' title="front camera"><img src='./assets/MapFront.png' class="tooltip-image"></div>`;
+      return `<div class="tooltipImage" title='front camera'><img src='./assets/MapFront.png' class="tooltip-image"></div>`;
     }
 }
 
